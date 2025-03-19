@@ -1,0 +1,47 @@
+import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import Home from "./components/Home";
+import Contact from "./components/Contact";
+import PMS from "./components/PMS";
+import ChannelManager from "./components/ChannelManager";
+import RMS from "./components/RMS";
+import BookingEngine from "./components/BookingEngine";
+import Onboard from "./components/Onboard";
+const Navbar = () => {
+  return (
+    <nav className="flex justify-between items-center bg-red-500 w-full h-16 px-10 text-white">
+      <h1 className="text-xl font-bold">Aiosell</h1>
+      <div className="flex space-x-8">
+        <Link to="/">HOME</Link>
+        <Link to="/news">NEWS</Link>
+        <Link to="/products">OUR PRODUCTS</Link>
+        <Link to="/blog">BLOG</Link>
+        <Link to="/pricing">PRICING</Link>
+        <Link to="/contact">CONTACT US</Link>
+      </div>
+    </nav>
+  );
+};
+
+const App = () => {
+  return (
+    <Router>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/news" element={<h2 className="p-10">News Page</h2>} />
+        <Route path="/products" element={<h2 className="p-10">Our Products Page</h2>} />
+        <Route path="/blog" element={<h2 className="p-10">Blog Page</h2>} />
+        <Route path="/pricing" element={<h2 className="p-10">Pricing Page</h2>} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/onboard" element={<Onboard></Onboard>} />
+        {/* New Feature Pages */}
+        <Route path="/pms" element={<PMS />} />
+        <Route path="/channel-manager" element={<ChannelManager />} />
+        <Route path="/rms" element={<RMS />} />
+        <Route path="/booking-engine" element={<BookingEngine />} />
+      </Routes>
+    </Router>
+  );
+};
+
+export default App;

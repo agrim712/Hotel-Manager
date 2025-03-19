@@ -1,0 +1,65 @@
+# Operating System Files
+.DS_Store
+Thumbs.db
+Desktop.ini
+*~
+
+# Dependency Directories
+node_modules/
+
+# Build and Output Files
+dist/
+build/
+out/
+*.log
+*.tmp
+*.temp
+
+# Environment and Configuration Files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Logs
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE and Editor Files
+.vscode/
+*.code-workspace
+.idea/
+*.iml
+*.ipr
+*.iws
+.settings/
+.project
+.classpath
+.metadata/
+*.swp
+*.swo
+
+# Cache Files
+.npm
+.yarn
+.yarnrc.yml
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Vite Build Files
+.vite/
+.cache/
+
+# TypeScript Build Files
+*.js.map
+*.d.ts
+*.tsbuildinfo
+
+# Miscellaneous
+*.bak
+*.backup
