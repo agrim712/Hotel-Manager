@@ -5,6 +5,8 @@ import { PrismaClient } from '@prisma/client';
 import authRoutes from './src/routes/authRoutes.js';
 import { errorHandler } from './src/middleware/errorHandler.js';
 import createSuperAdmin from './src/utils/initialSetup.js'; // Add this import
+import hotelRoutes from './src/routes/hotelRoutes.js';
+
 
 const app = express();
 const prisma = new PrismaClient();
@@ -31,6 +33,7 @@ prisma.$connect()
 // Routes
 app.use('/api/auth', authRoutes);
 
+app.use('/api/hotel', hotelRoutes);
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ 

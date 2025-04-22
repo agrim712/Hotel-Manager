@@ -12,37 +12,49 @@ const Login = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError("");
     setIsLoading(true);
-
+    setError("");
+  
     try {
-      // Updated endpoint to match backend
       const response = await axios.post(
-        "http://localhost:5000/api/auth/login", // Changed from superadmin-login
+        "http://localhost:5000/api/auth/login",
         { email, password, role },
         {
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Content-Type': 'application/json' },
           withCredentials: true
         }
       );
-
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("userRole", response.data.role);
+  
+      console.log("Full response:", response); // Debug entire response
       
-      // Redirect based on role
-      const redirectPath = response.data.role === "SUPERADMIN" 
-        ? "/superadmin-dashboard" 
+      if (!response.data.token) {
+        throw new Error("No token received from server");
+      }
+  
+      // Store auth data
+      window.localStorage.setItem("token", response.data.token);
+      window.localStorage.setItem("userRole", response.data.role);
+      
+      // Immediate verification
+      console.log("Stored data:", {
+        token: window.localStorage.getItem("token"),
+        role: window.localStorage.getItem("userRole")
+      });
+  
+      // Navigate
+      const redirectPath = response.data.role === "SUPERADMIN"
+        ? "/superadmin-dashboard"
         : "/hoteladmin-dashboard";
       
       navigate(redirectPath);
+  
     } catch (err) {
-      setError(
-        err.response?.data?.error || 
-        "Login failed. Please check your credentials."
-      );
-      console.error("Login error:", err);
+      console.error("Login failed:", err);
+      setError(err.response?.data?.error || err.message || "Login failed");
+      
+      // Clear any partial storage
+      window.localStorage.removeItem("token");
+      window.localStorage.removeItem("userRole");
     } finally {
       setIsLoading(false);
     }

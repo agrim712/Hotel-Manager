@@ -14,4 +14,5 @@ router.post('/hotel-admins',
   createHotelAdmin
 );
 
+
 export default router;

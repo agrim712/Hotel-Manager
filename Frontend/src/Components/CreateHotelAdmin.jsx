@@ -50,6 +50,7 @@ const CreateHotelAdmin = () => {
       );
 
       setMessage(response.data.message);
+      
       setFormData({
         hotelName: "",
         hotelEmail: "",

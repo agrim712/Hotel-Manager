@@ -25,15 +25,38 @@ model User {
 }
 
 model Hotel {
-  id        String   @id @default(cuid())
-  name      String
-  address   String   @unique
-  users     User[]   // All users of the hotel
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String   @id @default(cuid())
+  name            String
+  address         String   @unique
+  country         String?   // <-- optional
+  city            String?
+  contactPerson   String?
+  phoneCode       String?
+  phoneNumber     String?
+  whatsappNumber  String?
+  totalRooms      Int?
+  email           String?
+  propertyType    String?
+  currency        String?
+  products        String[]
+  rooms           Room[]
+  users           User[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
-
+model Room {
+  id             String   @id @default(cuid())
+  name           String
+  numOfRooms     Int
+  maxGuests      Int
+  rateType       String
+  rate           Float
+  extraAdultRate Float?
+  roomNumbers    String[] // List of room numbers
+  hotel          Hotel    @relation(fields: [hotelId], references: [id])
+  hotelId        String
+}
 
 enum Role {
   SUPERADMIN

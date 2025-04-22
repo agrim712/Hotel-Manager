@@ -11,6 +11,7 @@ import Login from "./Components/Login"
 import SuperadminDashboard from './pages/SuperadminDashboard';
 import CreateHotelAdmin from './Components/CreateHotelAdmin';
 import HoteladminDashboard from './pages/HoteladminDashboard'
+import ProtectedRoute from './Components/ProtectedRoute';
 import './index.css'; // This is required to apply Tailwind
 const Navbar = () => {
   return (
@@ -41,10 +42,17 @@ const App = () => {
         <Route path="/blog" element={<h2 className="p-10">Blog Page</h2>} />
         <Route path="/pricing" element={<h2 className="p-10">Pricing Page</h2>} />
         <Route path="/contact" element={<Contact />} />
-        <Route path="/onboard" element={<Onboard></Onboard>} />
+        <Route path="/onboard" element={<Onboard />} />
         <Route path="/login" element={<Login></Login>} />
         <Route path="/superadmin-dashboard" element={<SuperadminDashboard />} />
-        <Route path="/hoteladmin-dashboard" element={<HoteladminDashboard />} />
+        <Route 
+  path="/hoteladmin-dashboard" 
+  element={
+    <ProtectedRoute allowedRoles={['HOTELADMIN']}>
+      <HoteladminDashboard />
+    </ProtectedRoute>
+  } 
+/>
         <Route path="/create-hotel-admin" element={<CreateHotelAdmin />} />
         {/* New Feature Pages */}
         <Route path="/pms" element={<PMS />} />

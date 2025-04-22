@@ -151,12 +151,24 @@ export const createHotelAdmin = async (req, res) => {
         hotelId: hotel.id
       }
     });
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        role: user.role,
+        hotelId: hotel.id,
+        email: user.email
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
 
     return res.status(201).json({
       message: 'Hotel admin created successfully',
       hotelId: hotel.id,
-      userId: user.id
+      userId: user.id,
+      token
     });
+    
 
   } catch (err) {
     console.error("Error creating hotel admin:", err);
