@@ -20,13 +20,11 @@ const Login = () => {
         "http://localhost:5000/api/auth/login",
         { email, password, role },
         {
-          headers: { 'Content-Type': 'application/json' },
-          withCredentials: true
+          headers: { "Content-Type": "application/json" },
+          withCredentials: true,
         }
       );
   
-      console.log("Full response:", response); // Debug entire response
-      
       if (!response.data.token) {
         throw new Error("No token received from server");
       }
@@ -34,24 +32,20 @@ const Login = () => {
       // Store auth data
       window.localStorage.setItem("token", response.data.token);
       window.localStorage.setItem("userRole", response.data.role);
-      
-      // Immediate verification
-      console.log("Stored data:", {
-        token: window.localStorage.getItem("token"),
-        role: window.localStorage.getItem("userRole")
-      });
   
-      // Navigate
-      const redirectPath = response.data.role === "SUPERADMIN"
-        ? "/superadmin-dashboard"
-        : "/hoteladmin-dashboard";
-      
+      // Determine where to redirect
+      const redirectPath =
+        response.data.role === "SUPERADMIN"
+          ? "/superadmin-dashboard"
+          : response.data.isPaymentDone
+            ? "/pmss"
+            : "/hoteladmin-dashboard";
+  
       navigate(redirectPath);
-  
     } catch (err) {
       console.error("Login failed:", err);
       setError(err.response?.data?.error || err.message || "Login failed");
-      
+  
       // Clear any partial storage
       window.localStorage.removeItem("token");
       window.localStorage.removeItem("userRole");
@@ -59,6 +53,8 @@ const Login = () => {
       setIsLoading(false);
     }
   };
+  
+  
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">

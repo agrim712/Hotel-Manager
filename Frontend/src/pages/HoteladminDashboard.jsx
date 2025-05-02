@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useForm, Controller, useFieldArray } from "react-hook-form";
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 import Select from "react-select";
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api/hotel/onboard";
+// const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api/hotel/onboard";
 const COUNTRY_API_URL = "https://api.countrystatecity.in/v1/countries";
 const CITY_API_URL = "https://api.countrystatecity.in/v1/countries/[ciso]/cities";
 const PHONE_CODE_API_URL = "https://restcountries.com/v3.1/all";
@@ -26,9 +27,10 @@ const mealPlanOptions = [
 ];
 
 const PropertyForm = () => {
+  const navigate = useNavigate();
   const { register, handleSubmit, control, reset, formState: { errors }, watch, setValue } = useForm({
     defaultValues: {
-      rooms: [{ roomName: "", numOfRooms: "", maxGuests: "", rateType: null, rate: "", extraAdultRate: "", roomNumbers: "" }],
+      rooms: [{ name: "", numOfRooms: "", maxGuests: "", rateType: null, rate: "", extraAdultRate: "", roomNumbers: "" }],
     },
   });
 
@@ -130,7 +132,7 @@ const PropertyForm = () => {
         currency: data.currency?.value || "",
         products: Array.isArray(data.products) ? data.products : [],
         rooms: data.rooms.map((room) => ({
-          roomName: room.roomName,
+          name: room.name,
           numOfRooms: parseInt(room.numOfRooms, 10),
           maxGuests: parseInt(room.maxGuests, 10),
           rateType: room.rateType?.value || room.rateType || "", // Handle both cases
@@ -154,15 +156,16 @@ const PropertyForm = () => {
       }
   
       // Send the request with the Authorization header
-      const response = await axios.post(API_URL, formattedData, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` // Add this
-        }
-      });
+      // const response = await axios.post(API_URL, formattedData, {
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //     'Authorization': `Bearer ${token}` // Add this
+      //   }
+      // });
   
       setMessage("✅ Property onboarded successfully!");
       reset();
+      navigate('/payment', { state: formattedData });
     } catch (error) {
       // Enhanced error handling
       if (error.response?.status === 401) {
@@ -293,7 +296,7 @@ const PropertyForm = () => {
         <h2 className="text-xl font-bold mt-6">Room Details</h2>
         {fields.map((room, index) => (
           <div key={room.id} className="grid grid-cols-4 gap-4 border p-4">
-            <input {...register(`rooms.${index}.roomName`, { required: "Room Name is required" })} placeholder="Room Name *" className="p-2 border rounded-md" disabled={loading} />
+            <input {...register(`rooms.${index}.name`, { required: "Room Name is required" })} placeholder="Room Name *" className="p-2 border rounded-md" disabled={loading} />
             <input {...register(`rooms.${index}.numOfRooms`, { required: "Number of Rooms is required" })} type="number" placeholder="No. of Rooms *" className="p-2 border rounded-md" disabled={loading} />
             <input {...register(`rooms.${index}.maxGuests`, { required: "Max Guests is required" })} type="number" placeholder="Max Guests *" className="p-2 border rounded-md" disabled={loading} />
             <Controller
@@ -322,7 +325,7 @@ const PropertyForm = () => {
             )}
           </div>
         ))}
-        <button type="button" onClick={() => append({ roomName: "", numOfRooms: "", maxGuests: "", rateType: null, rate: "", extraAdultRate: "", roomNumbers: "" })} className="bg-green-500 text-white p-2 rounded-md" disabled={loading}>
+        <button type="button" onClick={() => append({ name: "", numOfRooms: "", maxGuests: "", rateType: null, rate: "", extraAdultRate: "", roomNumbers: "" })} className="bg-green-500 text-white p-2 rounded-md" disabled={loading}>
           + Add Room
         </button>
 

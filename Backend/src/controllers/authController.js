@@ -96,7 +96,8 @@ export const login = async (req, res) => {
         token,
         role: user.role,
         hotelId: user.hotelId,
-        hotelName: user.hotel?.name || null
+        hotelName: user.hotel?.name || null,
+        isPaymentDone: user.hotel?.isPaymentDone || false // ✅ Add this
       });
     }
 

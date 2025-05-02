@@ -14,4 +14,17 @@ export const createHotelSchema = z.object({
   propertyType: z.string(),
   currency: z.string(),
   products: z.array(z.string()),
+
+  // Add rooms validation
+  rooms: z.array(
+    z.object({
+      name: z.string(),
+      numOfRooms: z.number().int().positive(),
+      maxGuests: z.number().int().positive(),
+      rateType: z.string(),
+      rate: z.number().positive(),
+      extraAdultRate: z.number().optional(),
+      roomNumbers: z.array(z.string()).nonempty()
+    })
+  ).optional() // make optional if not always provided
 });

@@ -12,6 +12,8 @@ import SuperadminDashboard from './pages/SuperadminDashboard';
 import CreateHotelAdmin from './Components/CreateHotelAdmin';
 import HoteladminDashboard from './pages/HoteladminDashboard'
 import ProtectedRoute from './Components/ProtectedRoute';
+import Payment from './Components/Payment'
+import Pmss from './pages/Pmss'
 import './index.css'; // This is required to apply Tailwind
 const Navbar = () => {
   return (
@@ -53,11 +55,13 @@ const App = () => {
     </ProtectedRoute>
   } 
 />
+        <Route path="/payment" element={<Payment></Payment>}></Route>
         <Route path="/create-hotel-admin" element={<CreateHotelAdmin />} />
         {/* New Feature Pages */}
         <Route path="/pms" element={<PMS />} />
         <Route path="/channel-manager" element={<ChannelManager />} />
         <Route path="/rms" element={<RMS />} />
+        <Route path="/pmss" element={<Pmss />} />
         <Route path="/booking-engine" element={<BookingEngine />} />
       </Routes>
     </BrowserRouter>
