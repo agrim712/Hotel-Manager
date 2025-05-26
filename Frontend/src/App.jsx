@@ -13,7 +13,8 @@ import CreateHotelAdmin from './Components/CreateHotelAdmin';
 import HoteladminDashboard from './pages/HoteladminDashboard'
 import ProtectedRoute from './Components/ProtectedRoute';
 import Payment from './Components/Payment'
-import Pmss from './pages/Pmss'
+import Pmss from './pages/PMS/Pmss';
+import Reservation from './pages/PMS/Reservation';
 import './index.css'; // This is required to apply Tailwind
 const Navbar = () => {
   return (
@@ -61,7 +62,11 @@ const App = () => {
         <Route path="/pms" element={<PMS />} />
         <Route path="/channel-manager" element={<ChannelManager />} />
         <Route path="/rms" element={<RMS />} />
-        <Route path="/pmss" element={<Pmss />} />
+                <Route path="/pmss" element={<Pmss />}>
+             {/* Child routes that will render in the PMS <Outlet /> */}
+                   <Route path="reservation" element={<Reservation />} />
+             {/* ... other PMS child routes */}
+        </Route>
         <Route path="/booking-engine" element={<BookingEngine />} />
       </Routes>
     </BrowserRouter>
