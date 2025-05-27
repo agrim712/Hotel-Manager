@@ -16,6 +16,8 @@ import Payment from './Components/Payment'
 import Pmss from './pages/PMS/Pmss';
 import Reservation from './pages/PMS/Reservation';
 import './index.css'; // This is required to apply Tailwind
+import CreateReservation from './pages/PMS/CreateReservation';
+import { ReservationProvider } from './context/ReservationContext';
 const Navbar = () => {
   return (
     <nav className="flex justify-between items-center bg-red-500 w-full h-16 px-10 text-white">
@@ -35,7 +37,7 @@ const Navbar = () => {
 
 const App = () => {
   return (
-    <>
+    <ReservationProvider>
     <BrowserRouter>
       <Navbar />
       <Routes>
@@ -65,12 +67,13 @@ const App = () => {
                 <Route path="/pmss" element={<Pmss />}>
              {/* Child routes that will render in the PMS <Outlet /> */}
                    <Route path="reservation" element={<Reservation />} />
+                   <Route path="reservation/create" element={<CreateReservation />} />
              {/* ... other PMS child routes */}
         </Route>
         <Route path="/booking-engine" element={<BookingEngine />} />
       </Routes>
     </BrowserRouter>
-    </>
+    </ReservationProvider>
   );
 };
 

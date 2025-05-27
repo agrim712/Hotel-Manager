@@ -2,67 +2,28 @@ import React, { useState } from 'react';
 import { FaDownload, FaUpload, FaSearch, FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import { useNavigate } from 'react-router-dom'; 
+import { useReservationContext } from '../../context/ReservationContext';
 
 const Reservation = () => {
-  // State for filters
+  const navigate = useNavigate();
+
+  // ✅ Use context inside the component
+  const { reservations, setReservations } = useReservationContext();
+
+  const handleCreateReservation2 = () => {
+    navigate('/pmss/reservation/create');
+  };
+
   const [dateRange, setDateRange] = useState({
-    from: new Date(2024, 2, 23), // March 23, 2024 (month is 0-indexed)
-    to: new Date(2024, 2, 31)     // March 31, 2024 (to include all mock data)
+    from: new Date(2024, 2, 23),
+    to: new Date(2024, 2, 31),
   });
   const [showCancelled, setShowCancelled] = useState(false);
   const [filterOption, setFilterOption] = useState('Booking Date');
   const [searchText, setSearchText] = useState('');
 
-  // Mock data
-  const [reservations, setReservations] = useState([
-    {
-      bookingId: 'OCT1711704364',
-      customerName: 'Raju K.',
-      bookedOn: '28-Mar-2024, 2:56 PM',
-      checkIn: 'Mar 23, 24',
-      checkOut: 'Mar 30, 24',
-      source: 'Accell BE',
-      guests: 2,
-      rooms: 1,
-      nights: 7,
-      amount: 2105.72,
-      paymentMode: 'Postpaid',
-      mealPlan: 'EP',
-      status: 'Unassigned',
-    },
-    {
-      bookingId: '0119764844',
-      customerName: 'Lara Rajesh',
-      bookedOn: '28-Mar-2024, 1:23 PM',
-      checkIn: 'Mar 29, 24',
-      checkOut: 'Mar 31, 24',
-      source: 'Goibibo',
-      guests: 2,
-      rooms: 1,
-      nights: 2,
-      amount: 2911.60,
-      paymentMode: 'Prepaid',
-      mealPlan: 'EP',
-      status: 'Unassigned',
-    },
-    {
-      bookingId: 'OCT1711696418',
-      customerName: 'Leemon S',
-      bookedOn: '28-Mar-2024, 12:43 PM',
-      checkIn: 'Mar 25, 24',
-      checkOut: 'Mar 30, 24',
-      source: 'Accell BE',
-      guests: 2,
-      rooms: 1,
-      nights: 5,
-      amount: 2872.95,
-      paymentMode: 'Postpaid',
-      mealPlan: 'EP',
-      status: 'Unassigned',
-    },
-  ]);
-
-  // Status styling
+  // Style function
   const getStatusStyle = (status) => {
     switch (status) {
       case 'Checked in': return 'bg-green-100 text-green-800';
@@ -72,13 +33,12 @@ const Reservation = () => {
     }
   };
 
-  // Button components
   const ActionButton = ({ icon, text, onClick, variant = 'default' }) => {
     const variants = {
       default: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50',
       primary: 'bg-blue-500 text-white hover:bg-blue-600',
       secondary: 'bg-green-500 text-white hover:bg-green-600',
-      danger: 'bg-red-500 text-white hover:bg-red-600'
+      danger: 'bg-red-500 text-white hover:bg-red-600',
     };
 
     return (
@@ -92,7 +52,6 @@ const Reservation = () => {
     );
   };
 
-  // Handler functions
   const handleDownload = () => {
     console.log('Download clicked');
   };
@@ -118,16 +77,11 @@ const Reservation = () => {
     setReservations(reservations.filter(reservation => reservation.bookingId !== bookingId));
   };
 
-  // Corrected filtering logic
   const filteredReservations = reservations.filter(reservation => {
-    // Convert check-in/check-out dates from "Mar 23, 24" format to Date objects
     const checkInDate = new Date(reservation.checkIn.replace(/(\w+) (\d+), (\d+)/, '$1 $2, 20$3'));
     const checkOutDate = new Date(reservation.checkOut.replace(/(\w+) (\d+), (\d+)/, '$1 $2, 20$3'));
 
-    const isWithinDateRange =
-      checkInDate >= dateRange.from &&
-      checkOutDate <= dateRange.to;
-
+    const isWithinDateRange = checkInDate >= dateRange.from && checkOutDate <= dateRange.to;
     const matchesCancelled = showCancelled || reservation.status !== 'Cancelled';
 
     const matchesSearch =
@@ -148,10 +102,13 @@ const Reservation = () => {
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Reservation Data</h2>
           <div className="flex space-x-2">
-            <button className="flex items-center px-4 py-2 rounded-md text-sm font-medium bg-blue-500 text-white hover:bg-blue-600">
-              <FaPlus className="mr-2" />
-              Create Reservation
-            </button>
+                  <button
+                   className="flex items-center px-4 py-2 rounded-md text-sm font-medium bg-blue-500 text-white hover:bg-blue-600"
+                   onClick={handleCreateReservation2}
+                  >
+                  <FaPlus className="mr-2" />
+                  Create Reservation
+                  </button>
             <ActionButton
               icon={<FaPlus />}
               text="Complimentary"
