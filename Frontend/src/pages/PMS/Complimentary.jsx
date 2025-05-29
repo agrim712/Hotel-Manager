@@ -5,7 +5,9 @@ import axios from "axios";
 const COUNTRY_API_URL = "https://api.countrystatecity.in/v1/countries";
 const CITY_API_URL = (countryCode) =>
   `https://api.countrystatecity.in/v1/countries/${countryCode}/cities`;
-const API_KEY = "UlNueDJhekJaTVRsdHFqZ0tiNHdrT0JVZUdnOTZIdVA4VTgyMnFXcg==";
+const API_KEY = import.meta.env.VITE_API_KEY;
+console.log("API_KEY", API_KEY); // This should print the actual API key
+
 
 const ComplimentaryBookingForm = () => {
   const {

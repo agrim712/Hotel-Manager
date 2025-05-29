@@ -152,7 +152,7 @@ const Payment = () => {
               <span>Processing Payment...</span>
             </span>
           ) : (
-            'Pay ₹10 Now'
+            'Pay Now'
           )}
         </button>
       </div>

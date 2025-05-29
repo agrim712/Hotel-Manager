@@ -94,7 +94,9 @@ const CreateReservation = () => {
   const [cityOptions, setCityOptions] = useState([]);
 
   // API key and headers for CountryStateCity API
-  const API_KEY = 'UlNueDJhekJaTVRsdHFqZ0tiNHdrT0JVZUdnOTZIdVA4VTgyMnFXcg==';
+  const API_KEY = import.meta.env.VITE_API_KEY;
+  console.log("API_KEY", API_KEY); // This should print the actual API key
+
   const headers = {
     'X-CSCAPI-KEY': API_KEY,
   };

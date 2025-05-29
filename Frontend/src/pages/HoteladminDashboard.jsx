@@ -8,7 +8,7 @@ import axios from "axios";
 const COUNTRY_API_URL = "https://api.countrystatecity.in/v1/countries";
 const CITY_API_URL = "https://api.countrystatecity.in/v1/countries/[ciso]/cities";
 const PHONE_CODE_API_URL = "https://restcountries.com/v3.1/all";
-const API_KEY = "UlNueDJhekJaTVRsdHFqZ0tiNHdrT0JVZUdnOTZIdVA4VTgyMnFXcg==";
+const API_KEY = import.meta.env.VITE_API_KEY;
 
 const currencyOptions = [
   { value: "USD", label: "💵 USD - US Dollar" },
