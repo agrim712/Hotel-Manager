@@ -17,6 +17,7 @@ import Pmss from './pages/PMS/Pmss';
 import Reservation from './pages/PMS/Reservation';
 import './index.css'; // This is required to apply Tailwind
 import CreateReservation from './pages/PMS/CreateReservation';
+import ComplimentaryReservation from './pages/PMS/Complimentary';
 import { ReservationProvider } from './context/ReservationContext';
 const Navbar = () => {
   return (
@@ -71,6 +72,7 @@ const App = () => {
              {/* ... other PMS child routes */}
         </Route>
         <Route path="/booking-engine" element={<BookingEngine />} />
+        <Route path="/pmss/reservation/create/complimentary" element={<ComplimentaryReservation />} />
       </Routes>
     </BrowserRouter>
     </ReservationProvider>

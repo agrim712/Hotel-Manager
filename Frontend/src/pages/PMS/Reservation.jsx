@@ -109,12 +109,13 @@ const Reservation = () => {
                   <FaPlus className="mr-2" />
                   Create Reservation
                   </button>
-            <ActionButton
-              icon={<FaPlus />}
-              text="Complimentary"
-              onClick={() => handleCreateReservation('complimentary')}
-              variant="secondary"
-            />
+<ActionButton
+  icon={<FaPlus />}
+  text="Complimentary"
+  onClick={() => navigate('/pmss/reservation/create/complimentary')}
+  variant="secondary"
+/>
+
             <ActionButton
               icon={<FaPlus />}
               text="Out of Order"
