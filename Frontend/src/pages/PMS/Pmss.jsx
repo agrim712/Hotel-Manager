@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, Outlet } from "react-router-dom";
+import { useNavigate, Outlet } from "react-router-dom";
 import {
   FaChartBar,
   FaBed,
@@ -7,9 +7,12 @@ import {
   FaPlus,
   FaUsers,
   FaBuilding,
-  FaFileAlt
+  FaFileAlt,
 } from "react-icons/fa";
+
 const Pmss = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
@@ -19,27 +22,48 @@ const Pmss = () => {
         </div>
 
         <nav className="flex-1 p-4 space-y-4">
-          <Link to="dashboard" className="flex items-center gap-3 hover:text-blue-300">
+          <button
+            onClick={() => navigate("/pmss/dashboard")}
+            className="flex items-center gap-3 hover:text-blue-300 w-full text-left"
+          >
             <FaChartBar /> Dashboard
-          </Link>
-          <Link to="stay-view" className="flex items-center gap-3 hover:text-blue-300">
+          </button>
+          <button
+            onClick={() => navigate("/pmss/stay-view")}
+            className="flex items-center gap-3 hover:text-blue-300 w-full text-left"
+          >
             <FaBed /> Stay View
-          </Link>
-          <Link to="rooms-view" className="flex items-center gap-3 hover:text-blue-300">
+          </button>
+          <button
+            onClick={() => navigate("/pmss/rooms-view")}
+            className="flex items-center gap-3 hover:text-blue-300 w-full text-left"
+          >
             <FaCalendarAlt /> Rooms View
-          </Link>
-          <Link to="reservation" className="flex items-center gap-3 hover:text-blue-300">
+          </button>
+          <button
+            onClick={() => navigate("/pmss/reservation")}
+            className="flex items-center gap-3 hover:text-blue-300 w-full text-left"
+          >
             <FaPlus /> Reservation
-          </Link>
-          <Link to="guests" className="flex items-center gap-3 hover:text-blue-300">
+          </button>
+          <button
+            onClick={() => navigate("/pmss/guests")}
+            className="flex items-center gap-3 hover:text-blue-300 w-full text-left"
+          >
             <FaUsers /> Guests
-          </Link>
-          <Link to="companies" className="flex items-center gap-3 hover:text-blue-300">
+          </button>
+          <button
+            onClick={() => navigate("/pmss/companies")}
+            className="flex items-center gap-3 hover:text-blue-300 w-full text-left"
+          >
             <FaBuilding /> Companies
-          </Link>
-          <Link to="reports" className="flex items-center gap-3 hover:text-blue-300">
+          </button>
+          <button
+            onClick={() => navigate("/pmss/reports")}
+            className="flex items-center gap-3 hover:text-blue-300 w-full text-left"
+          >
             <FaFileAlt /> Reports
-          </Link>
+          </button>
         </nav>
       </aside>
 

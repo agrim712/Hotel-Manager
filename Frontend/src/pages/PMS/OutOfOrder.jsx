@@ -1,19 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import axios from "axios";
 import Pmss from "./Pmss"
 const COUNTRY_API_URL = "https://api.countrystatecity.in/v1/countries";
 const CITY_API_URL = (countryCode) =>
   `https://api.countrystatecity.in/v1/countries/${countryCode}/cities`;
 const API_KEY = import.meta.env.VITE_API_KEY;
-console.log("API_KEY", API_KEY); // This should print the actual API key
 
-
-const ComplimentaryBookingForm = () => {
+const OutOfOrderRoomForm = () => {
   const {
     register,
     handleSubmit,
-    control,
     watch,
     setValue,
     formState: { errors },
@@ -84,7 +81,7 @@ const ComplimentaryBookingForm = () => {
     const formData = new FormData();
     for (let key in data) {
       if (key === "photoId") {
-        formData.append(key, data[key][0]); // File input
+        formData.append(key, data[key][0]);
       } else {
         formData.append(key, data[key]);
       }
@@ -103,7 +100,6 @@ const ComplimentaryBookingForm = () => {
   const ErrorMsg = ({ error }) =>
     error && <p className="text-red-500 text-sm">{error.message || "This field is required"}</p>;
 
-  // Tailwind input styles for reuse
   const inputClass =
     "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600";
 
@@ -112,9 +108,11 @@ const ComplimentaryBookingForm = () => {
         <div className="flex h-screen">
       {/* Sidebar */}
       <Pmss />
-            <div className="flex-1 overflow-auto bg-white">
+
+      {/* Form content with scroll */}
+      <div className="flex-1 overflow-auto bg-white">
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 p-6 max-w-5xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4">Booking</h2>
+      <h2 className="text-2xl font-bold mb-4">Out of Order Room</h2>
 
       <div className="grid grid-cols-3 gap-6">
         <div>
@@ -136,91 +134,71 @@ const ComplimentaryBookingForm = () => {
 
         <div>
           <label className="block mb-1 font-semibold">Room Type</label>
-          <select {...register("roomType", { required: true })} className={inputClass}>
+          <select {...register("roomType")} className={inputClass} disabled>
             <option value="">Select Room Type</option>
             <option value="Executive">Executive</option>
             <option value="Deluxe">Deluxe</option>
             <option value="Suite">Suite</option>
           </select>
-          <ErrorMsg error={errors.roomType} />
         </div>
 
         <div>
           <label className="block mb-1 font-semibold">Rate Plan</label>
-          <select {...register("ratePlan", { required: true })} className={inputClass}>
+          <select {...register("ratePlan")} className={inputClass} disabled>
             <option value="">Select Rate Plan</option>
-            {ratePlans.map((plan) => (
-              <option key={plan} value={plan}>
-                {plan}
-              </option>
-            ))}
           </select>
-          <ErrorMsg error={errors.ratePlan} />
         </div>
 
         <div>
           <label className="block mb-1 font-semibold">Booked By</label>
-          <input {...register("bookedBy", { required: true })} placeholder="Booked By" className={inputClass} />
-          <ErrorMsg error={errors.bookedBy} />
+          <input {...register("bookedBy")} placeholder="Booked By" className={inputClass} disabled />
         </div>
-{/* Business Segment */}
-<div>
-  <label className="block mb-1 font-semibold">Business Segment</label>
-  <select
-    {...register("businessSegment", { required: true })}
-    className={inputClass}
-    defaultValue="Management Block"
-    disabled
-  >
-    <option value="Management Block">Management Block</option>
-  </select>
-  <ErrorMsg error={errors.businessSegment} />
-</div>
 
-{/* Bill To */}
-<div>
-  <label className="block mb-1 font-semibold">Bill To</label>
-  <input
-    {...register("billTo", { required: true })}
-    value="Guest"
-    readOnly
-    className={inputClass + " bg-gray-100 cursor-not-allowed"}
-  />
-  <ErrorMsg error={errors.billTo} />
-</div>
+        <div>
+          <label className="block mb-1 font-semibold">Business Segment</label>
+          <input
+            {...register("businessSegment")}
+            value="Out of Order"
+            readOnly
+            className={inputClass + " bg-gray-100 cursor-not-allowed"}
+          />
+        </div>
 
-{/* Payment Mode */}
-<div>
-  <label className="block mb-1 font-semibold">Payment Mode</label>
-  <select
-    {...register("paymentMode", { required: true })}
-    className={inputClass}
-    defaultValue="Cash"
-    disabled
-  >
-    <option value="Cash">Cash</option>
-  </select>
-  <ErrorMsg error={errors.paymentMode} />
-</div>
+        <div>
+          <label className="block mb-1 font-semibold">Bill To</label>
+          <input
+            {...register("billTo")}
+            value="Guest"
+            readOnly
+            className={inputClass + " bg-gray-100 cursor-not-allowed"}
+          />
+        </div>
 
-{/* Per Day Rate */}
-<div>
-  <label className="block mb-1 font-semibold">Per Day Rate</label>
-  <input
-    {...register("perDayRate", { required: true })}
-    value={0}
-    readOnly
-    type="number"
-    className={inputClass + " bg-gray-100 cursor-not-allowed"}
-  />
-  <ErrorMsg error={errors.perDayRate} />
-</div>
+        <div>
+          <label className="block mb-1 font-semibold">Payment Mode</label>
+          <input
+            {...register("paymentMode")}
+            value="Cash"
+            readOnly
+            className={inputClass + " bg-gray-100 cursor-not-allowed"}
+          />
+        </div>
 
+        <div>
+          <label className="block mb-1 font-semibold">Per Day Rate</label>
+          <input
+            {...register("perDayRate")}
+            value={0}
+            readOnly
+            type="number"
+            className={inputClass + " bg-gray-100 cursor-not-allowed"}
+          />
+        </div>
 
         <div>
           <label className="block mb-1 font-semibold">Per Day Tax</label>
           <input
-            {...register("perDayTax", { required: true })}
+            {...register("perDayTax")}
             placeholder="Per Day Tax"
             type="number"
             className={inputClass}
@@ -231,122 +209,97 @@ const ComplimentaryBookingForm = () => {
         <div>
           <label className="block mb-1 font-semibold">Number of Guests</label>
           <input
-            {...register("numGuests", { required: true })}
-            placeholder="# Guests"
+            {...register("numGuests")}
             type="number"
+            placeholder="# Guests"
             className={inputClass}
+            disabled
           />
-          <ErrorMsg error={errors.numGuests} />
         </div>
 
         <div>
           <label className="block mb-1 font-semibold">Number of Rooms</label>
           <input
-            {...register("numRooms", { required: true })}
-            placeholder="# Rooms"
+            {...register("numRooms")}
             type="number"
+            placeholder="# Rooms"
             className={inputClass}
+            disabled
           />
-          <ErrorMsg error={errors.numRooms} />
         </div>
 
         <div>
           <label className="block mb-1 font-semibold">Room Number</label>
-          <select {...register("roomNo", { required: true })} className={inputClass}>
+          <select {...register("roomNo")} className={inputClass} disabled>
             <option value="">Select Room Number</option>
-            {roomNumbers.slice(0, selectedNumRooms || 0).map((roomNo) => (
-              <option key={roomNo} value={roomNo}>
-                {roomNo}
-              </option>
-            ))}
           </select>
-          <ErrorMsg error={errors.roomNo} />
         </div>
       </div>
 
       <h2 className="text-2xl font-bold mt-10 mb-4">Guest Details</h2>
+      <div>
+  <label className="block mb-1 font-semibold">Remarks / Issue Description</label>
+  <textarea
+    {...register("issueRemarks", { required: "Please describe the issue" })}
+    placeholder="E.g. AC not working, plumbing issue, etc."
+    rows={4}
+    className={inputClass}
+  ></textarea>
+  <ErrorMsg error={errors.issueRemarks} />
+</div>
+
 
       <div className="grid grid-cols-3 gap-6">
         <div>
           <label className="block mb-1 font-semibold">Name</label>
-          <input {...register("name", { required: true })} placeholder="Name" className={inputClass} />
-          <ErrorMsg error={errors.name} />
+          <input {...register("name")} placeholder="Name" className={inputClass} disabled />
         </div>
 
         <div>
           <label className="block mb-1 font-semibold">Email</label>
-          <input
-            {...register("email", { required: true })}
-            placeholder="Email"
-            type="email"
-            className={inputClass}
-          />
-          <ErrorMsg error={errors.email} />
+          <input {...register("email")} type="email" placeholder="Email" className={inputClass} disabled />
         </div>
 
         <div>
           <label className="block mb-1 font-semibold">Mobile Number</label>
-          <input
-            {...register("mobile", { required: true })}
-            placeholder="Mobile Number"
-            type="tel"
-            className={inputClass}
-          />
-          <ErrorMsg error={errors.mobile} />
+          <input {...register("mobile")} type="tel" placeholder="Mobile Number" className={inputClass} disabled />
         </div>
 
         <div>
           <label className="block mb-1 font-semibold">Address</label>
-          <input {...register("address", { required: true })} placeholder="Address" className={inputClass} />
-          <ErrorMsg error={errors.address} />
+          <input {...register("address")} placeholder="Address" className={inputClass} disabled />
         </div>
 
         <div>
           <label className="block mb-1 font-semibold">Country</label>
-          <select {...register("country", { required: true })} className={inputClass}>
+          <select {...register("country")} className={inputClass} disabled>
             <option value="">Select Country</option>
-            {countries.map((c) => (
-              <option key={c.iso2} value={c.iso2}>
-                {c.name}
-              </option>
-            ))}
           </select>
-          <ErrorMsg error={errors.country} />
         </div>
 
         <div>
           <label className="block mb-1 font-semibold">City</label>
-          <select {...register("city", { required: true })} className={inputClass}>
+          <select {...register("city")} className={inputClass} disabled>
             <option value="">Select City</option>
-            {cities.map((c) => (
-              <option key={c.id} value={c.name}>
-                {c.name}
-              </option>
-            ))}
           </select>
-          <ErrorMsg error={errors.city} />
         </div>
 
         <div>
           <label className="block mb-1 font-semibold">Gender</label>
-          <select {...register("gender", { required: true })} className={inputClass}>
+          <select {...register("gender")} className={inputClass} disabled>
             <option value="">Select Gender</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Other">Other</option>
           </select>
-          <ErrorMsg error={errors.gender} />
         </div>
 
         <div>
           <label className="block mb-1 font-semibold">Photo ID</label>
           <input
-            {...register("photoId", { required: true })}
+            {...register("photoId")}
             type="file"
             accept="image/*"
             className={inputClass}
+            disabled
           />
-          <ErrorMsg error={errors.photoId} />
         </div>
       </div>
 
@@ -354,7 +307,7 @@ const ComplimentaryBookingForm = () => {
         type="submit"
         className="mt-8 px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
       >
-        Submit Booking
+        Submit Out of Order Booking
       </button>
     </form>
     </div>
@@ -363,4 +316,4 @@ const ComplimentaryBookingForm = () => {
   );
 };
 
-export default ComplimentaryBookingForm;
+export default OutOfOrderRoomForm;

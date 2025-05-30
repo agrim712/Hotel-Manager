@@ -119,13 +119,13 @@ const Reservation = () => {
             <ActionButton
               icon={<FaPlus />}
               text="Out of Order"
-              onClick={() => handleCreateReservation('out-of-order')}
+              onClick={() => navigate('/pmss/reservation/create/outoforder')}
               variant="danger"
             />
             <ActionButton
               icon={<FaPlus />}
               text="Groups"
-              onClick={() => handleCreateReservation('groups')}
+              onClick={() => navigate('/pmss/reservation/create/group')}
               variant="primary"
             />
           </div>
@@ -165,6 +165,8 @@ const Reservation = () => {
               <option>Booking Date</option>
               <option>Booking ID</option>
               <option>Customer Name</option>
+              <option>Phone Number</option>
+              <option>Email</option>
             </select>
           </div>
           <div className="flex items-end">

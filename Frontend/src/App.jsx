@@ -18,7 +18,10 @@ import Reservation from './pages/PMS/Reservation';
 import './index.css'; // This is required to apply Tailwind
 import CreateReservation from './pages/PMS/CreateReservation';
 import ComplimentaryReservation from './pages/PMS/Complimentary';
+import OutOfOrderRoomForm from './pages/PMS/OutOfOrder';
+import GroupReservationForm from "./pages/PMS/GroupReservation"
 import { ReservationProvider } from './context/ReservationContext';
+import GuestListHeader from './pages/PMS/Guests';
 const Navbar = () => {
   return (
     <nav className="flex justify-between items-center bg-red-500 w-full h-16 px-10 text-white">
@@ -73,6 +76,9 @@ const App = () => {
         </Route>
         <Route path="/booking-engine" element={<BookingEngine />} />
         <Route path="/pmss/reservation/create/complimentary" element={<ComplimentaryReservation />} />
+        <Route path="/pmss/reservation/create/outoforder" element={<OutOfOrderRoomForm></OutOfOrderRoomForm>} />
+        <Route path="/pmss/reservation/create/group" element={<GroupReservationForm></GroupReservationForm>} />
+        <Route path="/pmss/guests" element={<GuestListHeader></GuestListHeader>} />
       </Routes>
     </BrowserRouter>
     </ReservationProvider>
