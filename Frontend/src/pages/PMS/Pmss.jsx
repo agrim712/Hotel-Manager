@@ -8,6 +8,9 @@ import {
   FaUsers,
   FaBuilding,
   FaFileAlt,
+  FaCocktail,
+  FaSpa,
+  FaUtensils,
 } from "react-icons/fa";
 
 const Pmss = () => {
@@ -63,6 +66,26 @@ const Pmss = () => {
             className="flex items-center gap-3 hover:text-blue-300 w-full text-left"
           >
             <FaFileAlt /> Reports
+          </button>
+
+          {/* New Sections */}
+          <button
+            onClick={() => navigate("/pmss/bar-management")}
+            className="flex items-center gap-3 hover:text-blue-300 w-full text-left"
+          >
+            <FaCocktail /> Bar Management
+          </button>
+          <button
+            onClick={() => navigate("/pmss/spa-management")}
+            className="flex items-center gap-3 hover:text-blue-300 w-full text-left"
+          >
+            <FaSpa /> Spa Management
+          </button>
+          <button
+            onClick={() => navigate("/pmss/restaurant-management")}
+            className="flex items-center gap-3 hover:text-blue-300 w-full text-left"
+          >
+            <FaUtensils /> Restaurant Management
           </button>
         </nav>
       </aside>

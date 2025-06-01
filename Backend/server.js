@@ -8,6 +8,7 @@ import createSuperAdmin from './src/utils/initialSetup.js'; // Add this import
 import hotelRoutes from './src/routes/hotelRoutes.js';
 import paymentRoutes from './src/routes/paymentRoutes.js';
 
+
 const app = express();
 const prisma = new PrismaClient();
 
@@ -36,6 +37,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/payment', paymentRoutes);
 
 app.use('/api/hotel', hotelRoutes);
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ 

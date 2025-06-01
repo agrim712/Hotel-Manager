@@ -28,3 +28,10 @@ export const createHotelSchema = z.object({
     })
   ).optional() // make optional if not always provided
 });
+export const roomUnitSchema = z.object({
+  roomNumber: z.string(),
+  status: z.enum(["AVAILABLE", "BOOKED", "MAINTENANCE"]).optional(),
+  notes: z.string().optional(),
+  floor: z.number().int().optional(),
+  roomId: z.string(),
+});

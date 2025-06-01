@@ -19,12 +19,14 @@ const currencyOptions = [
 ];
 
 const mealPlanOptions = [
-  { value: "Room Only", label: "Room Only" },
-  { value: "Bed & Breakfast", label: "Bed & Breakfast" },
-  { value: "Half Board", label: "Half Board" },
-  { value: "Full Board", label: "Full Board" },
-  { value: "All Inclusive", label: "All Inclusive" },
+  { value: "EP", label: "Room Only (EP - European Plan)" },           // No meals
+  { value: "CP", label: "Bed & Breakfast (CP - Continental Plan)" }, // Light breakfast
+  { value: "MAP", label: "Half Board (MAP - Modified American Plan)" }, // Breakfast + 1 meal
+  { value: "AP", label: "Full Board (AP - American Plan)" },         // Breakfast + Lunch + Dinner
+  { value: "AI", label: "All Inclusive (AI)" },                      // All meals + drinks + some activities
+  { value: "UAI", label: "Ultra All Inclusive (UAI)" },              // All Inclusive + premium services
 ];
+
 
 const PropertyForm = () => {
   const navigate = useNavigate();

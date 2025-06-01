@@ -54,9 +54,24 @@ model Room {
   rateType       String
   rate           Float
   extraAdultRate Float?
-  roomNumbers    String[] // List of room numbers
-  hotel          Hotel    @relation(fields: [hotelId], references: [id])
+  roomNumbers    String[] // ✅ Still store this for onboarding
   hotelId        String
+  hotel          Hotel    @relation(fields: [hotelId], references: [id])
+  roomUnits      RoomUnit[]
+}
+model RoomUnit {
+  id         String      @id @default(cuid())
+  roomNumber String
+  status     RoomStatus  @default(AVAILABLE)
+  notes      String?
+  floor      Int?
+  roomId     String
+  room       Room        @relation(fields: [roomId], references: [id])
+}
+enum RoomStatus {
+  AVAILABLE
+  BOOKED
+  MAINTENANCE
 }
 
 enum Role {

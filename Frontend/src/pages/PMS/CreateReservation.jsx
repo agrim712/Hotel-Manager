@@ -4,7 +4,9 @@ import 'react-datepicker/dist/react-datepicker.css';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-
+import RoomTypeSelect from '../../Components/Selects/RoomTypeSelect';
+import RateTypeSelect from '../../Components/Selects/RateTypeSelect';
+import NumberOfRoomsDropdown from '../../Components/Selects/NoOfRoomTypeSelect';
 // Reusable Input Component
 const FormInput = ({ label, name, value, onChange, type = 'text', error, required = false, ...props }) => (
   <div className="space-y-1">
@@ -63,7 +65,7 @@ const CreateReservation = () => {
     nights: 0,
     roomType: '',
     ratePlan: '',
-    quiet: true,
+    numberOfGuests: '',
     rooms: 1,
     bookedBy: '',
     businessSegment: 'Walk-in',
@@ -350,59 +352,43 @@ const CreateReservation = () => {
 
         {/* Room Type, Rate Plan, Quiet, Rooms */}
         <div className="grid grid-cols-4 gap-6">
-          <FormSelect
-            label="Room Type"
-            name="roomType"
-            value={formData.roomType}
-            onChange={handleChange}
-            options={[
-              { value: "Executive", label: "Executive" },
-              { value: "Super Deluxe", label: "Super Deluxe" },
-              { value: "Deluxe", label: "Deluxe" },
-              { value: "Suite", label: "Suite" },
-            ]}
-            error={errors.roomType}
-            required={true}
+<RoomTypeSelect
+  formData={formData}
+  handleChange={handleChange}
+  errors={errors}
+/>
+<RateTypeSelect
+  roomType={formData.roomType}
+  formData={formData}
+  handleChange={handleChange}
+  errors={errors}
 />
 
 
-            <FormSelect
-              label="Rate Plan"
-              name="ratePlan"
-              value={formData.ratePlan}
-              onChange={handleChange}
-              options={[
-                { value: "Room Only", label: "Room Only" },
-                { value: "Bed & Breakfast", label: "Bed & Breakfast" },
-                { value: "Half Board", label: "Half Board" },
-                { value: "Full Board", label: "Full Board" },
-                { value: "All Inclusive", label: "All Inclusive" },
-              ]}
-              error={errors.ratePlan}
-              required={true}
-            />
+<div className="mb-4">
+  <label htmlFor="numberOfGuests" className="block text-sm font-medium text-gray-700 mb-1">
+    Number of guests in each room
+  </label>
+  <input
+    type="number"
+    id="numberOfGuests"
+    name="numberOfGuests"
+    value={formData.numberOfGuests}
+    onChange={handleChange}
+    min={1}
+    className="border border-gray-300 rounded px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+    placeholder="Enter number of guests"
+  />
+</div>
 
 
-          <div className="flex items-center space-x-2">
-            <label className="block text-sm font-medium text-gray-700">Quiet</label>
-            <input
-              type="checkbox"
-              name="quiet"
-              checked={formData.quiet}
-              onChange={handleChange}
-              className="mt-1"
-            />
-          </div>
+<NumberOfRoomsDropdown
+  roomType={formData.roomType}
+  rateType={formData.rateType}
+  token={localStorage.getItem("token")}
+  onSelect={(value) => setFormData({ ...formData, numRooms: value })}
+/>
 
-          <FormInput
-            label="Rooms"
-            name="rooms"
-            type="number"
-            value={formData.rooms}
-            onChange={handleChange}
-            min={1}
-            required={true}
-          />
         </div>
 
         {/* Booked By, Business Segment, Bill To, Payment Mode */}
