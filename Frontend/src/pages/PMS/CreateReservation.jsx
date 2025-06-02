@@ -7,6 +7,8 @@ import { toast } from 'react-toastify';
 import RoomTypeSelect from '../../Components/Selects/RoomTypeSelect';
 import RateTypeSelect from '../../Components/Selects/RateTypeSelect';
 import NumberOfRoomsDropdown from '../../Components/Selects/NoOfRoomTypeSelect';
+import MaxGuestsDisplay from '../../Components/Selects/MaxGuests';
+import AvailableRoomNumbers from '../../Components/Selects/RoomNumbers';
 // Reusable Input Component
 const FormInput = ({ label, name, value, onChange, type = 'text', error, required = false, ...props }) => (
   <div className="space-y-1">
@@ -365,21 +367,11 @@ const CreateReservation = () => {
 />
 
 
-<div className="mb-4">
-  <label htmlFor="numberOfGuests" className="block text-sm font-medium text-gray-700 mb-1">
-    Number of guests in each room
-  </label>
-  <input
-    type="number"
-    id="numberOfGuests"
-    name="numberOfGuests"
-    value={formData.numberOfGuests}
-    onChange={handleChange}
-    min={1}
-    className="border border-gray-300 rounded px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-    placeholder="Enter number of guests"
-  />
-</div>
+<MaxGuestsDisplay
+  roomType={formData.roomType}
+  rateType={formData.rateType}
+  token={localStorage.getItem("token")}
+/>
 
 
 <NumberOfRoomsDropdown
@@ -473,7 +465,16 @@ const CreateReservation = () => {
 
         {/* Room No, Guest Name, Email, Phone */}
         <div className="grid grid-cols-4 gap-6">
-          <FormInput label="Room No" name="roomNo" value={formData.roomNo} onChange={handleChange} />
+          <AvailableRoomNumbers
+            roomType={formData.roomType}
+            rateType={formData.rateType}
+            token={localStorage.getItem("token")}
+              onChange={(value) => {
+    console.log("Selected room numbers:", value); // comma-separated string
+    setFormData(prev => ({ ...prev, roomNumbers: value }));
+  }}
+          />
+
 
           <FormInput
             label="Guest Name"
