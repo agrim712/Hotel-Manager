@@ -8,11 +8,11 @@ generator client {
   provider = "prisma-client-js"
 }
 
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -25,29 +25,30 @@ model User {
 }
 
 model Hotel {
-  id              String   @id @default(cuid())
-  name            String
-  address         String   @unique
-  country         String?   // <-- optional
-  city            String?
-  contactPerson   String?
-  phoneCode       String?
-  phoneNumber     String?
-  whatsappNumber  String?
-  totalRooms      Int?
-  email           String?   
-  propertyType    String?
-  currency        String?
-  products        String[]
-  rooms           Room[]
-  users           User[]
-  isPaymentDone   Boolean  @default(false) // Tracks if the payment for the hotel has been completed
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String        @id @default(cuid())
+  name           String
+  address        String        @unique
+  country        String? // <-- optional
+  city           String?
+  contactPerson  String?
+  phoneCode      String?
+  phoneNumber    String?
+  whatsappNumber String?
+  totalRooms     Int?
+  email          String?
+  propertyType   String?
+  currency       String?
+  products       String[]
+  rooms          Room[]
+  users          User[]
+  reservations   Reservation[]
+  isPaymentDone  Boolean       @default(false) // Tracks if the payment for the hotel has been completed
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 }
 
 model Room {
-  id             String   @id @default(cuid())
+  id             String     @id @default(cuid())
   name           String
   numOfRooms     Int
   maxGuests      Int
@@ -56,18 +57,62 @@ model Room {
   extraAdultRate Float?
   roomNumbers    String[] // ✅ Still store this for onboarding
   hotelId        String
-  hotel          Hotel    @relation(fields: [hotelId], references: [id])
+  hotel          Hotel      @relation(fields: [hotelId], references: [id])
   roomUnits      RoomUnit[]
+    reservations Reservation[] @relation("RoomToReservation")
 }
+
 model RoomUnit {
-  id         String      @id @default(cuid())
-  roomNumber String
-  status     RoomStatus  @default(AVAILABLE)
-  notes      String?
-  floor      Int?
-  roomId     String
-  room       Room        @relation(fields: [roomId], references: [id])
+  id           String        @id @default(cuid())
+  roomNumber   String
+  status       RoomStatus    @default(AVAILABLE)
+  notes        String?
+  floor        Int?
+  roomId       String
+  room         Room          @relation(fields: [roomId], references: [id])
 }
+
+model Reservation {
+  id              String    @id @default(uuid())
+  checkIn         DateTime
+  checkOut        DateTime
+  nights          Int
+  roomType        String
+  rateType        String         // updated field name to match frontend
+  guests          Int
+  rooms           Int
+  bookedBy        String
+  businessSegment String
+  billTo          String
+  paymentMode     String
+  perDayRate      Float
+  perDayTax       Float
+  taxInclusive    Boolean
+  totalAmount     Float?         // optional, if you want to store total
+  roomNo          String
+  guestName       String
+  email           String
+  phone           String
+  dob             DateTime?
+  gender          String
+  specialRequest  String?
+  address         String
+  city            String
+  state           String
+  zip             String
+  country         String
+  identity        String
+  idDetail        String
+  idProof         String?
+  photoIdPath     String?
+  hotelId         String
+  hotel           Hotel     @relation(fields: [hotelId], references: [id])
+
+  connectedRooms  Room[]    @relation("RoomToReservation")
+  createdAt       DateTime  @default(now())
+}
+
+
 enum RoomStatus {
   AVAILABLE
   BOOKED

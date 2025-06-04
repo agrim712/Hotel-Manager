@@ -58,6 +58,7 @@ const CreateReservation = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
+    const [successMessage, setSuccessMessage] = useState('');
   const COUNTRY_API_URL = 'https://api.countrystatecity.in/v1/countries';
 
   // Initial form state
@@ -66,7 +67,6 @@ const CreateReservation = () => {
     checkOutDate: null,
     nights: 0,
     roomType: '',
-    ratePlan: '',
     numberOfGuests: '',
     rooms: 1,
     bookedBy: '',
@@ -76,7 +76,6 @@ const CreateReservation = () => {
     perDayRate: '',
     perDayTax: '',
     taxInclusive: true,
-    roomNo: '',
     guestName: '',
     email: '',
     phone: '',
@@ -130,22 +129,26 @@ const CreateReservation = () => {
       return;
     }
 
-    const fetchCities = async () => {
-      try {
-        const res = await axios.get(
-          `https://api.countrystatecity.in/v1/countries/${formData.country}/cities`,
-          { headers }
-        );
-        const options = res.data.map((city) => ({
-          value: city.name,
-          label: city.name,
-        }));
-        setCityOptions(options);
-      } catch (err) {
-        console.error('Error fetching cities:', err);
-        setCityOptions([]);
-      }
-    };
+const fetchCities = async () => {
+  try {
+    const res = await axios.get(
+      `https://api.countrystatecity.in/v1/countries/${formData.country}/cities`,
+      { headers }
+    );
+
+    const options = res.data.map((city) => ({
+      value: city.id,     // ✅ Use city.id here
+      label: city.name,
+    }));
+
+    setCityOptions(options);
+  } catch (err) {
+    console.error('Error fetching cities:', err);
+    setCityOptions([]);
+  }
+};
+
+
 
     fetchCities();
   }, [formData.country]);
@@ -226,7 +229,7 @@ const CreateReservation = () => {
 
     if (!formData.paymentMode) newErrors.paymentMode = 'Payment mode is required';
 
-    if (!formData.ratePlan) newErrors.ratePlan = 'Rate plan is required';
+    // if (!formData.ratePlan) newErrors.ratePlan = 'Rate plan is required';
 
     if (!formData.perDayRate) newErrors.perDayRate = 'Per day rate is required';
     else if (isNaN(formData.perDayRate))
@@ -254,46 +257,55 @@ const CreateReservation = () => {
   };
 
   // Submit handler
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateForm()) return;
+const handleSubmit = async (e) => {
+  e.preventDefault();
+if (!validateForm()) {
+  console.log("🚫 Form validation failed, submission aborted.");
+  return;
+}
+  setIsSubmitting(true);
+      setSuccessMessage('');  // clear previous messages
 
-    setIsSubmitting(true);
+  try {
+    const formDataToSend = new FormData();
 
-    try {
-      const formDataToSend = new FormData();
-
-      if (formData.photoId) {
-        formDataToSend.append('photo', formData.photoId);
-      }
-
-      // Append all other fields
-      for (const key in formData) {
-        if (key === 'photoId') continue;
-        const value = formData[key];
-
-        if (value instanceof Date) {
-          formDataToSend.append(key, value.toISOString());
-        } else {
-          formDataToSend.append(key, value);
-        }
-      }
-
-      // Send request to backend API (replace URL with your actual endpoint)
-      await axios.post('http://localhost:8080/api/reservation/create', formDataToSend, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-
-      toast.success('Reservation created successfully');
-      resetForm();
-      navigate('/reservationList');
-    } catch (error) {
-      console.error(error);
-      toast.error('Failed to create reservation');
-    } finally {
-      setIsSubmitting(false);
+    if (formData.photoId) {
+      formDataToSend.append('photo', formData.photoId);
     }
-  };
+    
+    for (const key in formData) {
+      if (key === 'photoId') continue;
+      const value = formData[key];
+      
+      
+      if (value instanceof Date) {
+        formDataToSend.append(key, value.toISOString());
+      } else {
+        formDataToSend.append(key, value);
+      }
+    }
+    for (let pair of formDataToSend.entries()) {
+  console.log(`${pair[0]}: ${pair[1]}`);
+}
+
+    const token = localStorage.getItem('token');
+
+    await axios.post('http://localhost:5000/api/hotel/reservation/create', formDataToSend, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    toast.success('Reservation created successfully');
+    setSuccessMessage('Reservation created successfully!');
+    resetForm();
+  } catch (error) {
+    console.error(error);
+    toast.error('Failed to create reservation');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <div className="max-w-4xl mx-auto p-4 bg-white rounded shadow">
@@ -371,6 +383,7 @@ const CreateReservation = () => {
   roomType={formData.roomType}
   rateType={formData.rateType}
   token={localStorage.getItem("token")}
+  onChange={(value) => setFormData((prev) => ({ ...prev, numberOfGuests: value }))}
 />
 
 
@@ -604,6 +617,11 @@ const CreateReservation = () => {
           </button>
         </div>
       </form>
+            {successMessage && (
+        <div className="success-message" style={{ marginTop: '10px', color: 'green' }}>
+          {successMessage}
+        </div>
+      )}
     </div>
   );
 };
