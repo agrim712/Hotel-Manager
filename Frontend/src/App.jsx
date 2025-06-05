@@ -71,7 +71,7 @@ const App = () => {
                 <Route path="/pmss" element={<Pmss />}>
              {/* Child routes that will render in the PMS <Outlet /> */}
                    <Route path="reservation" element={<Reservation />} />
-                   <Route path="reservation/create" element={<CreateReservation />} />
+                   <Route path="reservation/create/regular" element={<CreateReservation />} />
              {/* ... other PMS child routes */}
         </Route>
         <Route path="/booking-engine" element={<BookingEngine />} />

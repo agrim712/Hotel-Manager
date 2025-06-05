@@ -7,6 +7,7 @@ import { getRoomCount } from "../controllers/Reservation/noOfRooms.js";
 import { maxGuests } from "../controllers/Reservation/maxGuest.js";
 import { getAvailableRoomNumbers } from "../controllers/Reservation/roomNumber.js";
 import { createReservation } from "../controllers/Reservation/reservationController.js";
+import { getRes } from "../controllers/Reservation/getReservation.js";
 import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
@@ -77,5 +78,6 @@ router.post(
   upload.single('photo'),
   createReservation
 );
+router.get("/getreservations",auth, authorizeRoles("HOTELADMIN"), getRes);
 
 export default router;
