@@ -8,6 +8,7 @@ import { maxGuests } from "../controllers/Reservation/maxGuest.js";
 import { getAvailableRoomNumbers } from "../controllers/Reservation/roomNumber.js";
 import { createReservation } from "../controllers/Reservation/reservationController.js";
 import { getRes } from "../controllers/Reservation/getReservation.js";
+import { getGuests, getPreviousStays } from "../controllers/Guest/guestController.js";
 import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
@@ -20,7 +21,7 @@ const __dirname = path.dirname(__filename);
 
 const uploadDir = path.join(__dirname, '..', '..', 'uploads', 'photos');
 
-
+console.log('Serving static files from:', uploadDir);
 // Then check if exists and create
 
 if (!fs.existsSync(uploadDir)) {
@@ -44,6 +45,8 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
+// Serve uploaded photos
+router.use('/photos', express.static(uploadDir));
 
 router.post(
   '/onboard',
@@ -79,5 +82,18 @@ router.post(
   createReservation
 );
 router.get("/getreservations",auth, authorizeRoles("HOTELADMIN"), getRes);
+router.get(
+  '/guests',
+  auth,
+  authorizeRoles('HOTELADMIN'),
+  getGuests
+);
+
+router.get(
+  '/reservations/previous-stays/:email',
+  auth,
+  authorizeRoles('HOTELADMIN'),
+  getPreviousStays
+);
 
 export default router;

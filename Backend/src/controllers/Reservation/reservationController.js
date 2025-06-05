@@ -50,8 +50,8 @@ export const createReservation = async (req, res) => {
   ? data.roomNumbers.split(',').map(r => r.trim())
   : data.roomNumbers;
 
-    // 🖼️ Photo path
-    const photoIdPath = photoFile ? photoFile.path : null;
+// When handling file uploads:
+const photoIdPath = `/api/hotel/photos/${req.file.filename}`;
         const matchedRooms = await prisma.room.findMany({
       where: {
         roomNumbers: {
