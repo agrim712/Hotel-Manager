@@ -26,6 +26,10 @@ const mealPlanOptions = [
   { value: "AI", label: "All Inclusive (AI)" },                      // All meals + drinks + some activities
   { value: "UAI", label: "Ultra All Inclusive (UAI)" },              // All Inclusive + premium services
 ];
+const phoneCodeOptions = [
+  { value: "+91", label: "🇮🇳 +91 India" },
+  // ... other options
+];
 
 
 const PropertyForm = () => {
@@ -213,14 +217,11 @@ const PropertyForm = () => {
           />
           <input {...register("yourName", { required: "Your Name is required" })} placeholder="Your Name *" className="p-2 border rounded-md" disabled={loading} />
           <div className="flex space-x-2">
-            <Controller
-              name="phoneCode"
-              control={control}
-              rules={{ required: "Phone Code is required" }}
-              render={({ field }) => (
-                <Select {...field} options={phoneCodeOptions} placeholder="Code" isClearable isDisabled={loading} />
-              )}
-            />
+<input 
+  value="+91" 
+  readOnly 
+  className="your-styles" 
+/>
             <input
               {...register("phoneNumber", {
                 required: "Phone Number is required",
