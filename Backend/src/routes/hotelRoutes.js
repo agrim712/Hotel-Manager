@@ -10,6 +10,8 @@ import { createReservation } from "../controllers/Reservation/reservationControl
 import { getRes } from "../controllers/Reservation/getReservation.js";
 import { getGuests, getPreviousStays } from "../controllers/Guest/guestController.js";
 import { getRoomsWithUnits } from '../controllers/roomController.js';
+import { getRoomCounts } from "../controllers/roomCountController.js";
+import { getAllRoomUnits } from "../controllers/roomUnit.js";
 import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
@@ -97,5 +99,19 @@ router.get(
   getPreviousStays
 );
 router.get('/rooms-with-units', auth, authorizeRoles('HOTELADMIN'), getRoomsWithUnits);
+
+router.get(
+  '/room-count',
+  auth,
+  authorizeRoles('HOTELADMIN'),
+  getRoomCounts
+);
+router.get(
+  '/roomunits',
+  auth,
+  authorizeRoles('HOTELADMIN'),
+  getAllRoomUnits
+);
+
 
 export default router;
