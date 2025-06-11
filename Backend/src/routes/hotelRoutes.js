@@ -6,7 +6,7 @@ import { getRatePlans } from "../controllers/Reservation/getRatePlans.js";
 import { getRoomCount } from "../controllers/Reservation/noOfRooms.js";
 import { maxGuests } from "../controllers/Reservation/maxGuest.js";
 import { getAvailableRoomNumbers } from "../controllers/Reservation/roomNumber.js";
-import { createReservation } from "../controllers/Reservation/reservationController.js";
+import { createReservation, updateReservation, deleteReservation } from "../controllers/Reservation/reservationController.js";
 import { getRes } from "../controllers/Reservation/getReservation.js";
 import { getGuests, getPreviousStays } from "../controllers/Guest/guestController.js";
 import { getRoomsWithUnits } from '../controllers/roomController.js';
@@ -29,23 +29,21 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-
 const router = express.Router();
 
 // Multer setup for photo uploads
-
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
-    // Use a unique filename: timestamp + original filename
     const uniqueSuffix = Date.now() + '-' + file.originalname;
     cb(null, uniqueSuffix);
   },
 });
 
 const upload = multer({ storage });
+
 // Serve uploaded photos
 router.use('/photos', express.static(uploadDir));
 
@@ -74,15 +72,30 @@ router.get("/count", auth, authorizeRoles("HOTELADMIN"), getRoomCount);
 router.get("/maxguests", auth, authorizeRoles("HOTELADMIN"), maxGuests);
 router.get("/room-available-numbers", auth, authorizeRoles("HOTELADMIN"), getAvailableRoomNumbers);
 
-// Add reservation route here
+// Reservation routes
 router.post(
   '/reservation/create',
   auth,
-  authorizeRoles('HOTELADMIN'), // adjust roles as needed
+  authorizeRoles('HOTELADMIN'),
   upload.single('photo'),
   createReservation
 );
-router.get("/getreservations",auth, authorizeRoles("HOTELADMIN"), getRes);
+
+router.put(
+  '/reservation/update/:id',
+  auth,
+  authorizeRoles('HOTELADMIN'),
+  updateReservation
+);
+
+router.delete(
+  '/reservation/delete/:id',
+  auth,
+  authorizeRoles('HOTELADMIN'),
+  deleteReservation
+);
+
+router.get("/getreservations", auth, authorizeRoles("HOTELADMIN"), getRes);
 router.get(
   '/guests',
   auth,
@@ -96,6 +109,7 @@ router.get(
   authorizeRoles('HOTELADMIN'),
   getPreviousStays
 );
+
 router.get('/rooms-with-units', auth, authorizeRoles('HOTELADMIN'), getRoomsWithUnits);
 
 export default router;

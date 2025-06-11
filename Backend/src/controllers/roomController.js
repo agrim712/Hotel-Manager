@@ -16,7 +16,7 @@ export const getRoomsWithUnits = async (req, res) => {
         roomUnits: true, // Include room unit details (room numbers etc.)
       },
     });
-    res.json(rooms);
+    res.json({rooms});
   } catch (error) {
     console.error('Failed to fetch rooms with units:', error);
     res.status(500).json({ error: 'Internal server error while fetching rooms.' });

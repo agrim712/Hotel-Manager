@@ -70,7 +70,10 @@ model RoomUnit {
   floor        Int?
   roomId       String
   room         Room          @relation(fields: [roomId], references: [id])
+
+  reservations Reservation[] // ⬅️ Add this line for the back relation
 }
+
 
 model Reservation {
   id              String    @id @default(uuid())
@@ -107,6 +110,9 @@ model Reservation {
   photoIdPath     String?
   hotelId         String
   hotel           Hotel     @relation(fields: [hotelId], references: [id])
+
+  roomUnitId      String?
+  roomUnit        RoomUnit? @relation(fields: [roomUnitId], references: [id])
 
   connectedRooms  Room[]    @relation("RoomToReservation")
   createdAt       DateTime  @default(now())
