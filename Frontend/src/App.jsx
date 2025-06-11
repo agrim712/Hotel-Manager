@@ -21,6 +21,7 @@ import OutOfOrderRoomForm from './pages/PMS/OutOfOrder';
 import GroupReservationForm from "./pages/PMS/GroupReservation";
 import GuestListHeader from './pages/PMS/Guests';
 import StayViewPage from './pages/PMS/stayview'; // ✅ newly added
+import RoomsView from './pages/PMS/RoomsView';
 
 import './index.css';
 import { ReservationProvider } from './context/ReservationContext';
@@ -79,6 +80,8 @@ const App = () => {
             <Route path="reservation" element={<Reservation />} />
             <Route path="reservation/create/regular" element={<CreateReservation />} />
             <Route path="stay-view" element={<StayViewPage />} /> {/* ✅ added */}
+            <Route path="rooms-view" element={<RoomsView />} /> 
+
           </Route>
 
           {/* Additional PMS pages not inside nested outlet */}
