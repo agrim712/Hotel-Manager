@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import { useState } from 'react';
 import Home from "./components/Home";
 import Contact from "./components/Contact";
 import PMS from "./components/PMS";
@@ -7,6 +8,7 @@ import ChannelManager from "./components/ChannelManager";
 import RMS from "./Components/RMS";
 import BookingEngine from "./components/BookingEngine";
 import Onboard from "./components/Onboard";
+import Navbar from './Components/Navbar';
 import Login from "./Components/Login";
 import SuperadminDashboard from './pages/SuperadminDashboard';
 import CreateHotelAdmin from './Components/CreateHotelAdmin';
@@ -25,29 +27,33 @@ import RoomsView from './pages/PMS/RoomsView';
 
 import './index.css';
 import { ReservationProvider } from './context/ReservationContext';
+import RestaurantManagement from './pages/Resturant/Resturant_dashboard';
+import MenuBuilder from './pages/Resturant/MenuBuilder';
+import SpaManagement from './pages/SPA/Spa_Dashboard';
+import BarManagement from './pages/Bar/Bar_Dashboard';
+import SpaMenuManager from './pages/SPA/Spa_menu_builder';
 
-const Navbar = () => {
-  return (
-    <nav className="flex justify-between items-center bg-red-500 w-full h-16 px-10 text-white">
-      <Link className="text-xl font-bold" to="/">Asyncotel</Link>
-      <div className="flex space-x-8">
-        <Link to="/">HOME</Link>
-        <Link to="/news">NEWS</Link>
-        <Link to="/products">OUR PRODUCTS</Link>
-        <Link to="/blog">BLOG</Link>
-        <Link to="/pricing">PRICING</Link>
-        <Link to="/contact">CONTACT US</Link>
-        <Link to="/login">LOGIN</Link>
-      </div>
-    </nav>
-  );
-};
 
 const App = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+const [hotelName, setHotelName] = useState("Grand Plaza");
+
+const handleLogout = () => {
+  setIsLoggedIn(false);
+  // Add your logout logic here
+    localStorage.removeItem('Token');
+        localStorage.removeItem('userData');
+    setIsLoggedIn(false);
+    navigate('/login');
+};
   return (
     <ReservationProvider>
       <BrowserRouter>
-        <Navbar />
+          <Navbar 
+    isLoggedIn={isLoggedIn} 
+    hotelName={hotelName} 
+    onLogout={handleLogout} 
+  />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/news" element={<h2 className="p-10">News Page</h2>} />
@@ -89,6 +95,12 @@ const App = () => {
           <Route path="/pmss/reservation/create/outoforder" element={<OutOfOrderRoomForm />} />
           <Route path="/pmss/reservation/create/group" element={<GroupReservationForm />} />
           <Route path="/pmss/guests" element={<GuestListHeader />} />
+
+          <Route path="/restaurant/edit-menu" element={<MenuBuilder></MenuBuilder>} />
+          <Route path="/spa/edit-menu" element={<SpaMenuManager></SpaMenuManager>} />
+          <Route path="/pmss/restaurant-management" element={<RestaurantManagement></RestaurantManagement>} />
+          <Route path="/pmss/spa-management" element={<SpaManagement></SpaManagement>} />
+          <Route path="/pmss/bar-management" element={<BarManagement />} />
         </Routes>
       </BrowserRouter>
     </ReservationProvider>

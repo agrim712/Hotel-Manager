@@ -9,7 +9,7 @@ import { errorHandler } from './src/middleware/errorHandler.js';
 import createSuperAdmin from './src/utils/initialSetup.js';
 import hotelRoutes from './src/routes/hotelRoutes.js';
 import paymentRoutes from './src/routes/paymentRoutes.js';
-
+import RestaurantRoutes from './src/routes/RestaurantRoutes.js'
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
@@ -61,7 +61,7 @@ prisma.$connect()
 app.use('/api/auth', authRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/hotel', hotelRoutes);
-
+app.use('/api/menu', RestaurantRoutes);
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ 

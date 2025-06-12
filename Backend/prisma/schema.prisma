@@ -117,7 +117,32 @@ model Reservation {
   connectedRooms  Room[]    @relation("RoomToReservation")
   createdAt       DateTime  @default(now())
 }
+model R_Category {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  items       R_Item[]  // ✅ Changed from Item[] to R_Item[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
 
+model R_Item {
+  id          Int      @id @default(autoincrement())
+  name        String
+  price       Float
+  description String?
+  spiceLevel  String   @default("Mild")
+  allergens   String[]
+  vegetarian  Boolean  @default(false)
+  available   Boolean  @default(true)
+  prepTime    Int      @default(15)
+  category    R_Category @relation(fields: [categoryId], references: [id])  // ✅ Changed from Category to R_Category
+  categoryId  Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([name, categoryId])
+}
 
 enum RoomStatus {
   AVAILABLE

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate, Outlet } from "react-router-dom";
 import {
   FaChartBar,
@@ -15,6 +15,7 @@ import {
 
 const Pmss = () => {
   const navigate = useNavigate();
+  const [isPOSOpen, setIsPOSOpen] = useState(false);
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -68,25 +69,38 @@ const Pmss = () => {
             <FaFileAlt /> Reports
           </button>
 
-          {/* New Sections */}
-          <button
-            onClick={() => navigate("/pmss/bar-management")}
-            className="flex items-center gap-3 hover:text-blue-300 w-full text-left"
-          >
-            <FaCocktail /> Bar Management
-          </button>
-          <button
-            onClick={() => navigate("/pmss/spa-management")}
-            className="flex items-center gap-3 hover:text-blue-300 w-full text-left"
-          >
-            <FaSpa /> Spa Management
-          </button>
-          <button
-            onClick={() => navigate("/pmss/restaurant-management")}
-            className="flex items-center gap-3 hover:text-blue-300 w-full text-left"
-          >
-            <FaUtensils /> Restaurant Management
-          </button>
+          {/* POS Dropdown Section */}
+          <div>
+            <button
+              onClick={() => setIsPOSOpen(!isPOSOpen)}
+              className="flex items-center gap-3 hover:text-blue-300 w-full text-left"
+            >
+              <FaUtensils /> POS
+              <span className="ml-auto">{isPOSOpen ? "▾" : "▸"}</span>
+            </button>
+            {isPOSOpen && (
+              <div className="ml-6 mt-2 space-y-2">
+                <button
+                  onClick={() => navigate("/pmss/bar-management")}
+                  className="flex items-center gap-2 text-sm hover:text-blue-300 w-full text-left"
+                >
+                  <FaCocktail /> Bar Management
+                </button>
+                <button
+                  onClick={() => navigate("/pmss/spa-management")}
+                  className="flex items-center gap-2 text-sm hover:text-blue-300 w-full text-left"
+                >
+                  <FaSpa /> Spa Management
+                </button>
+                <button
+                  onClick={() => navigate("/pmss/restaurant-management")}
+                  className="flex items-center gap-2 text-sm hover:text-blue-300 w-full text-left"
+                >
+                  <FaUtensils /> Restaurant Management
+                </button>
+              </div>
+            )}
+          </div>
         </nav>
       </aside>
 
