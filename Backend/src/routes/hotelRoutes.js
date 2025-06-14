@@ -12,6 +12,7 @@ import { getGuests, getPreviousStays } from "../controllers/Guest/guestControlle
 import { getRoomsWithUnits } from '../controllers/roomController.js';
 import { getRoomCounts } from "../controllers/roomCountController.js";
 import { getAllRoomUnits } from "../controllers/roomUnit.js";
+import { updateRoomUnitStatus } from "../controllers/UpdateStatus.js";
 import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
@@ -113,6 +114,12 @@ router.get(
 );
 
 router.get('/rooms-with-units', auth, authorizeRoles('HOTELADMIN'), getRoomsWithUnits);
+router.put(
+  '/roomunits/:id/status',
+  auth,
+  authorizeRoles('HOTELADMIN'),
+  updateRoomUnitStatus
+);
 
 router.get(
   '/room-count',
