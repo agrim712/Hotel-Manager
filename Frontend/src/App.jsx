@@ -32,6 +32,7 @@ import MenuBuilder from './pages/Resturant/MenuBuilder';
 import SpaManagement from './pages/SPA/Spa_Dashboard';
 import BarManagement from './pages/Bar/Bar_Dashboard';
 import SpaMenuManager from './pages/SPA/Spa_menu_builder';
+import Reports from './pages/PMS/Reports';
 
 
 const App = () => {
@@ -86,7 +87,9 @@ const handleLogout = () => {
             <Route path="reservation" element={<Reservation />} />
             <Route path="reservation/create/regular" element={<CreateReservation />} />
             <Route path="stay-view" element={<StayViewPage />} /> {/* ✅ added */}
-            <Route path="rooms-view" element={<RoomsView />} /> 
+            <Route path="rooms-view" element={<RoomsView />} />
+            <Route path="reports" element={<Reports />} />
+
 
           </Route>
 
