@@ -3,6 +3,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import axios from 'axios';
 import ArrivalReportTable from './ArrivalReportTable';
+import DepartureReportTable from './DepartureReportTable';
 
 const Reports = () => {
   const [selectedReport, setSelectedReport] = useState('Arrival Report');
@@ -142,6 +143,9 @@ const Reports = () => {
         ) : (
             <>
             {selectedReport === 'Arrival Report' && <ArrivalReportTable data={reportData} />}
+            {selectedReport === 'Departure Report' && (
+                 <DepartureReportTable fromDate={fromDate} toDate={toDate} />
+            )}
             </>
         )}
       </div>
