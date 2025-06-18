@@ -30,17 +30,21 @@ const Reports = () => {
         }
       });
 
-      const from = new Date(fromDate);
-      const to = new Date(toDate);
+         const from = new Date(fromDate);
+        from.setHours(0, 0, 0, 0);
 
-      let filtered = response.data.data;
+         const to = new Date(toDate);
+           to.setHours(23, 59, 59, 999);
 
-      // Show reservations where stay overlaps selected range
-      filtered = filtered.filter(res => {
-        const checkIn = new Date(res.checkIn);
-        const checkOut = new Date(res.checkOut);
-        return checkIn <= to && checkOut >= from;
-      });
+
+       let filtered = response.data.data;
+           if (selectedReport === 'Arrival Report') {
+            filtered = filtered.filter(res => {
+                const checkIn = new Date(res.checkIn);
+             return checkIn >= from && checkIn <= to;
+              });
+              }
+
 
       setReportData(filtered);
     } catch (err) {

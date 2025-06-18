@@ -1,4 +1,3 @@
-// components/Reports/ArrivalReportTable.jsx
 import React from 'react';
 
 const ArrivalReportTable = ({ data }) => {
@@ -7,8 +6,22 @@ const ArrivalReportTable = ({ data }) => {
     return date.toLocaleDateString('en-GB');
   };
 
+  const getStatus = (reservation) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const checkInDate = new Date(reservation.checkIn);
+    checkInDate.setHours(0, 0, 0, 0);
+
+    const now = new Date();
+
+    if (checkInDate > today) return 'Upcoming';
+    if (reservation.actualCheckIn) return 'Checked In';
+    return now >= checkInDate ? 'Not Checked In' : 'Upcoming';
+  };
+
   if (data.length === 0) {
-    return <div className="text-center border p-2">No arrivals found.</div>;
+    return <div className="text-center border p-2">No arrivals in selected range.</div>;
   }
 
   return (
@@ -23,7 +36,6 @@ const ArrivalReportTable = ({ data }) => {
           <th className="border p-2">Guests</th>
           <th className="border p-2">Rate Type</th>
           <th className="border p-2">Total (INR)</th>
-          <th className="border p-2">Status</th>
         </tr>
       </thead>
       <tbody>
@@ -37,7 +49,6 @@ const ArrivalReportTable = ({ data }) => {
             <td className="border p-2">{reservation.guests}</td>
             <td className="border p-2">{reservation.rateType}</td>
             <td className="border p-2">{reservation.totalAmount}</td>
-            <td className="border p-2">{reservation.status}</td>
           </tr>
         ))}
       </tbody>

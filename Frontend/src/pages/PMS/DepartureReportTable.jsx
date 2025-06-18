@@ -73,13 +73,20 @@ useEffect(() => {
 
 
   const formatDate = (dateStr) => new Date(dateStr).toLocaleDateString('en-GB');
-const getStatusLabel = (roomNo) => {
-  const normalized = String(roomNo).trim(); // 👈 normalize input
-  const status = roomStatusMap[normalized];
+const getStatusLabel = (res) => {
+  const roomNo = String(res.roomNo).trim();
+  const status = roomStatusMap[roomNo];
+  const today = new Date();
+  const checkInDate = new Date(res.checkIn);
+
+  if (checkInDate > today) {
+    return 'Not Checked in yet';
+  }
 
   if (!status) return 'Unknown';
   return status === 'BOOKED' ? 'Checked In' : 'Checked Out';
 };
+
 console.log("roomStatusMap:", roomStatusMap);
 console.log("departures:", departures.map(d => d.roomNo));
 
@@ -123,7 +130,8 @@ console.log("departures:", departures.map(d => d.roomNo));
                   <td className="border p-2">{res.guests}</td>
                   <td className="border p-2">{res.rateType}</td>
                   <td className="border p-2">{res.totalAmount}</td>
-                  <td className="border p-2">{getStatusLabel(res.roomNo)}</td>
+                  <td className="border p-2">{getStatusLabel(res)}</td>
+
                 </tr>
               ))
             )}
