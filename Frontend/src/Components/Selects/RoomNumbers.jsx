@@ -1,44 +1,84 @@
+// RoomNumbers.jsx
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 
-const AvailableRoomNumbers = ({ roomType, rateType, token, onChange }) => {
+const API_BASE_URL = 'http://localhost:5000/api'; // Temporary - configure properly later
+
+const AvailableRoomNumbers = ({ 
+  roomType, 
+  rateType, 
+  checkInDate, 
+  checkOutDate, 
+  token, 
+  onChange 
+}) => {
   const [roomNumbers, setRoomNumbers] = useState([]);
   const [selectedRooms, setSelectedRooms] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     const fetchAvailableRooms = async () => {
-      if (!roomType || !rateType || !token) return;
+      // Skip if required data is missing
+      if (!roomType || !rateType || !checkInDate || !checkOutDate || !token) {
+        setRoomNumbers([]);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
 
       try {
         const response = await axios.get(
-          `http://localhost:5000/api/hotel/room-available-numbers`,
+          `${API_BASE_URL}/hotel/available-rooms`,
           {
-            params: { roomType, rateType },
-            headers: { Authorization: `Bearer ${token}` },
+            params: {
+              roomType,
+              rateType,
+              checkInDate: checkInDate.toISOString(),
+              checkOutDate: checkOutDate.toISOString()
+            },
+            headers: { 
+              Authorization: `Bearer ${token}` 
+            },
+            signal: controller.signal
           }
         );
 
-        setRoomNumbers(response.data.roomNumbers || []);
+        if (response.data?.success && response.data?.rooms) {
+          setRoomNumbers(response.data.rooms.map(room => room.number));
+        } else {
+          throw new Error(response.data?.message || 'No rooms available');
+        }
       } catch (error) {
-        console.error("❌ Error fetching available room numbers:", error);
-        setRoomNumbers([]);
+        if (!axios.isCancel(error)) {
+          console.error("Error fetching available room numbers:", error);
+          setError(error.response?.data?.message || error.message);
+          setRoomNumbers([]);
+        }
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchAvailableRooms();
-  }, [roomType, rateType, token]);
+
+    return () => controller.abort();
+  }, [roomType, rateType, checkInDate, checkOutDate, token]);
+
+  // ... rest of your component code ...
 
   const handleSelect = (num) => {
-    let updated;
-    if (selectedRooms.includes(num)) {
-      updated = selectedRooms.filter((n) => n !== num);
-    } else {
-      updated = [...selectedRooms, num];
-    }
+    const updated = selectedRooms.includes(num)
+      ? selectedRooms.filter(n => n !== num)
+      : [...selectedRooms, num];
+    
     setSelectedRooms(updated);
-    onChange?.(updated.join(","));
+    onChange?.(updated);
   };
 
   const handleClickOutside = (e) => {
@@ -59,25 +99,36 @@ const AvailableRoomNumbers = ({ roomType, rateType, token, onChange }) => {
       </label>
 
       {/* Input-like display */}
-      <input
-        type="text"
-        readOnly
-        value={selectedRooms.join(", ")}
+      <div
         onClick={() => setIsOpen(!isOpen)}
-        placeholder="Select room numbers"
-        className="w-full border border-gray-300 rounded px-3 py-2 cursor-pointer bg-white"
-      />
+        className={`w-full border ${error ? 'border-red-500' : 'border-gray-300'} rounded px-3 py-2 cursor-pointer bg-white flex items-center justify-between`}
+      >
+        <span className={selectedRooms.length === 0 ? "text-gray-400" : ""}>
+          {selectedRooms.length > 0 ? selectedRooms.join(", ") : "Select room numbers"}
+        </span>
+        {isLoading ? (
+          <span className="text-gray-500 text-xs">Loading...</span>
+        ) : (
+          <span className="text-gray-500">▼</span>
+        )}
+      </div>
+
+      {error && (
+        <p className="mt-1 text-sm text-red-600">{error}</p>
+      )}
 
       {/* Dropdown options */}
       {isOpen && (
-        <div className="absolute z-10 mt-1 w-full border border-gray-300 bg-white rounded shadow max-h-60 overflow-y-auto">
+        <div className="absolute z-10 mt-1 w-full border border-gray-300 bg-white rounded shadow-lg max-h-60 overflow-y-auto">
           {roomNumbers.length > 0 ? (
             roomNumbers.map((num) => (
               <div
                 key={num}
                 onClick={() => handleSelect(num)}
-                className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${
-                  selectedRooms.includes(num) ? "bg-gray-100 font-semibold" : ""
+                className={`px-4 py-2 cursor-pointer hover:bg-blue-50 ${
+                  selectedRooms.includes(num) 
+                    ? "bg-blue-100 font-medium text-blue-800" 
+                    : ""
                 }`}
               >
                 {num}
@@ -85,7 +136,7 @@ const AvailableRoomNumbers = ({ roomType, rateType, token, onChange }) => {
             ))
           ) : (
             <div className="px-4 py-2 text-gray-500 italic">
-              No available rooms found
+              {isLoading ? "Loading rooms..." : "No available rooms found"}
             </div>
           )}
         </div>

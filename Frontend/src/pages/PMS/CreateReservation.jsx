@@ -9,6 +9,8 @@ import RateTypeSelect from '../../Components/Selects/RateTypeSelect';
 import NumberOfRoomsDropdown from '../../Components/Selects/NoOfRoomTypeSelect';
 import MaxGuestsDisplay from '../../Components/Selects/MaxGuests';
 import AvailableRoomNumbers from '../../Components/Selects/RoomNumbers';
+import RoomAndRateSection from "../../Components/Selects/RoomAndRateSection";
+
 // Reusable Input Component
 const FormInput = ({ label, name, value, onChange, type = 'text', error, required = false, ...props }) => (
   <div className="space-y-1">
@@ -63,9 +65,10 @@ const CreateReservation = () => {
 
   // Initial form state
   const initialFormState = {
-    checkInDate: null,
+    rateType: '',
+    checkInDate: '',
     checkInTime: '14:00', // Default check-in time (2 PM)
-    checkOutDate: null,
+    checkOutDate: '',
     checkOutTime: '12:00', // Default check-out time (12 PM)
     nights: 0,
     roomType: '',
@@ -176,6 +179,7 @@ useEffect(() => {
   // Handle generic input changes
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    console.log("👂 HandleChange:", name, value); 
     setFormData((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
@@ -449,36 +453,12 @@ const combineDateAndTime = (date, timeStr) => {
         </div>
 
         {/* Room Type, Rate Plan, Quiet, Rooms */}
-        <div className="grid grid-cols-4 gap-6">
-<RoomTypeSelect
-  formData={formData}
-  handleChange={handleChange}
-  errors={errors}
-/>
-<RateTypeSelect
-  roomType={formData.roomType}
-  formData={formData}
-  handleChange={handleChange}
-  errors={errors}
-/>
+        
+        <RoomAndRateSection formData={formData} setFormData={setFormData} />
 
 
-<MaxGuestsDisplay
-  roomType={formData.roomType}
-  rateType={formData.rateType}
-  token={localStorage.getItem("token")}
-  onChange={(value) => setFormData((prev) => ({ ...prev, numberOfGuests: value }))}
-/>
 
-
-<NumberOfRoomsDropdown
-  roomType={formData.roomType}
-  rateType={formData.rateType}
-  token={localStorage.getItem("token")}
-  onSelect={(value) => setFormData({ ...formData, numRooms: value })}
-/>
-
-        </div>
+      
 
         {/* Booked By, Business Segment, Bill To, Payment Mode */}
         <div className="grid grid-cols-4 gap-6">
@@ -562,15 +542,16 @@ const combineDateAndTime = (date, timeStr) => {
 
         {/* Room No, Guest Name, Email, Phone */}
         <div className="grid grid-cols-4 gap-6">
-          <AvailableRoomNumbers
-            roomType={formData.roomType}
-            rateType={formData.rateType}
-            token={localStorage.getItem("token")}
-              onChange={(value) => {
-    console.log("Selected room numbers:", value); // comma-separated string
+        <AvailableRoomNumbers
+  roomType={formData.roomType}
+  rateType={formData.rateType}
+  checkInDate={combineDateAndTime(formData.checkInDate, formData.checkInTime)}
+  checkOutDate={combineDateAndTime(formData.checkOutDate, formData.checkOutTime)}
+  token={localStorage.getItem("token")}
+  onChange={(value) => {
     setFormData(prev => ({ ...prev, roomNumbers: value }));
   }}
-          />
+/>
 
 
           <FormInput

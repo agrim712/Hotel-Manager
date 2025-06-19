@@ -5,8 +5,7 @@ const prisma = new PrismaClient();
 
 function parseDateStrict(dateStr) {
   const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return null;
-  return d;
+  return isNaN(d.getTime()) ? null : d;
 }
 
 export const createReservation = async (req, res) => {
@@ -17,7 +16,7 @@ export const createReservation = async (req, res) => {
     const hotelId = req.user?.hotelId;
 
     if (!hotelId) {
-      return res.status(401).json({ success: false, message: "Unauthorized: hotelId missing from user" });
+      return res.status(401).json({ success: false, message: "Unauthorized: hotelId missing" });
     }
 
     const checkIn = parseDateStrict(data.checkInDate);
@@ -25,12 +24,16 @@ export const createReservation = async (req, res) => {
     const dob = data.dob ? parseDateStrict(data.dob) : null;
 
     if (!checkIn || !checkOut || checkOut <= checkIn) {
-      return res.status(400).json({ success: false, message: "Invalid check-in/check-out dates" });
+      return res.status(400).json({ success: false, message: "Invalid check-in or check-out date" });
     }
 
     const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
     const guests = Number(data.numberOfGuests);
     const rooms = Number(data.numRooms);
+    const roomNoArray = typeof data.roomNumbers === 'string'
+      ? data.roomNumbers.split(',').map(r => r.trim())
+      : data.roomNumbers;
+
     const perDayRate = parseFloat(data.perDayRate);
     const perDayTax = parseFloat(data.perDayTax);
     const totalAmount = parseFloat(data.totalAmount) || perDayRate * nights * rooms;
@@ -40,17 +43,10 @@ export const createReservation = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid numeric values" });
     }
 
-    const roomNoArray = typeof data.roomNumbers === 'string'
-      ? data.roomNumbers.split(',').map(r => r.trim())
-      : data.roomNumbers;
-
-    const photoIdPath = photoFile ? `/api/hotel/photos/${req.file.filename}` : null;
-
-    // Find matching room(s)
     const matchedRooms = await prisma.room.findMany({
       where: {
-        hotelId,
         roomNumbers: { hasSome: roomNoArray },
+        hotelId,
       },
     });
 
@@ -58,11 +54,10 @@ export const createReservation = async (req, res) => {
       return res.status(400).json({ success: false, message: "No matching rooms found" });
     }
 
-    // Find matching room units
     const matchingRoomUnits = await prisma.roomUnit.findMany({
       where: {
         roomNumber: { in: roomNoArray },
-        roomId: { in: matchedRooms.map(room => room.id) },
+        roomId: { in: matchedRooms.map(r => r.id) },
       },
     });
 
@@ -70,17 +65,7 @@ export const createReservation = async (req, res) => {
       return res.status(400).json({ success: false, message: "No matching room units found" });
     }
 
-    // Mark as BOOKED
-    await Promise.all(
-      matchingRoomUnits.map(unit =>
-        prisma.roomUnit.update({
-          where: { id: unit.id },
-          data: { status: 'BOOKED' },
-        })
-      )
-    );
-
-    // Create reservation using first unit as primary
+    // ✅ Create reservation (NO status update)
     const reservation = await prisma.reservation.create({
       data: {
         checkIn,
@@ -109,33 +94,30 @@ export const createReservation = async (req, res) => {
         state: data.state,
         zip: data.zip,
         country: data.country,
-        specialRequest: data.specialRequest,
         identity: data.identity,
         idDetail: data.idDetail,
         idProof: data.idProof || null,
-        photoIdPath,
+        photoIdPath: photoFile ? `/api/hotel/photos/${photoFile.filename}` : null,
         hotelId,
-        roomUnitId: matchingRoomUnits[0]?.id, // 💡 This line is key
+        roomUnitId: matchingRoomUnits[0]?.id,
         connectedRooms: {
-          connect: matchedRooms.map(room => ({ id: room.id })),
+          connect: matchedRooms.map(r => ({ id: r.id })),
         },
-      },
-      include: {
-        connectedRooms: true,
       },
     });
 
-    // Emit WebSocket events
+    // ✅ Notify via WebSocket
     emitReservationUpdate(io, hotelId, 'reservation-created', reservation);
     emitRoomStatusUpdate(io, hotelId, matchingRoomUnits);
 
     return res.status(201).json({ success: true, data: reservation });
 
-  } catch (error) {
-    console.error("❌ Error creating reservation:", error);
-    return res.status(500).json({ success: false, message: "Server error" });
+  } catch (err) {
+    console.error('❌ Reservation creation error:', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
 export const deleteReservation = async (req, res) => {
   try {
     const io = req.app.get('io');

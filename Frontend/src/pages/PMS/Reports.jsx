@@ -4,6 +4,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import axios from 'axios';
 import ArrivalReportTable from './ArrivalReportTable';
 import DepartureReportTable from './DepartureReportTable';
+import PoliceEnquiryReport from './PoliceEnquiryReport';
 
 const Reports = () => {
   const [selectedReport, setSelectedReport] = useState('Arrival Report');
@@ -15,7 +16,12 @@ const Reports = () => {
   const [error, setError] = useState(null);
 
   const reportCategories = {
-    'Front Office': ['Arrival Report', 'Departure Report', 'Night Audit Report'],
+    'Front Office': [
+      'Arrival Report',
+      'Departure Report',
+      'Night Audit Report',
+      'Police Enquiry Report'
+    ],
     'Management': ['Hotel Sales Report', 'Company Performance']
   };
 
@@ -25,26 +31,32 @@ const Reports = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get('http://localhost:5000/api/hotel/getreservations', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` }
       });
 
-         const from = new Date(fromDate);
-        from.setHours(0, 0, 0, 0);
+      const from = new Date(fromDate);
+      from.setHours(0, 0, 0, 0);
+      const to = new Date(toDate);
+      to.setHours(23, 59, 59, 999);
 
-         const to = new Date(toDate);
-           to.setHours(23, 59, 59, 999);
+      let filtered = response.data.data;
 
-
-       let filtered = response.data.data;
-           if (selectedReport === 'Arrival Report') {
-            filtered = filtered.filter(res => {
-                const checkIn = new Date(res.checkIn);
-             return checkIn >= from && checkIn <= to;
-              });
-              }
-
+      if (selectedReport === 'Arrival Report') {
+        filtered = filtered.filter(res => {
+          const checkIn = new Date(res.checkIn);
+          return checkIn >= from && checkIn <= to;
+        });
+      } else if (selectedReport === 'Departure Report') {
+        filtered = filtered.filter(res => {
+          const checkOut = new Date(res.checkOut);
+          return checkOut >= from && checkOut <= to;
+        });
+      } else if (selectedReport === 'Police Enquiry Report') {
+        filtered = filtered.filter(res => {
+          const checkIn = new Date(res.checkIn);
+          return checkIn >= from && checkIn <= to;
+        });
+      }
 
       setReportData(filtered);
     } catch (err) {
@@ -61,12 +73,7 @@ const Reports = () => {
 
   const handleDownload = () => {
     console.log('Downloading Excel...');
-    // Implement Excel download logic here
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB');
+    // TODO: Implement Excel export if needed
   };
 
   return (
@@ -78,7 +85,7 @@ const Reports = () => {
           <label className="text-xs font-semibold block">From Date:</label>
           <DatePicker
             selected={fromDate}
-            onChange={(date) => setFromDate(date)}
+            onChange={setFromDate}
             dateFormat="dd/MM/yyyy"
             className="border rounded px-2 py-1 w-32 text-xs"
           />
@@ -88,7 +95,7 @@ const Reports = () => {
           <label className="text-xs font-semibold block">To Date:</label>
           <DatePicker
             selected={toDate}
-            onChange={(date) => setToDate(date)}
+            onChange={setToDate}
             dateFormat="dd/MM/yyyy"
             className="border rounded px-2 py-1 w-32 text-xs"
           />
@@ -99,8 +106,6 @@ const Reports = () => {
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             className="border rounded px-3 py-1 w-full text-left flex justify-between items-center text-xs bg-white"
-            aria-haspopup="listbox"
-            aria-expanded={isDropdownOpen}
           >
             {selectedReport}
             <span>{isDropdownOpen ? '▲' : '▼'}</span>
@@ -110,7 +115,7 @@ const Reports = () => {
               {Object.entries(reportCategories).map(([category, reports]) => (
                 <div key={category}>
                   <div className="px-2 py-1 bg-gray-100 font-semibold text-xs border-b">{category}</div>
-                  {reports.map((report) => (
+                  {reports.map(report => (
                     <div
                       key={report}
                       onClick={() => {
@@ -120,7 +125,6 @@ const Reports = () => {
                       className={`px-3 py-1 hover:bg-gray-100 cursor-pointer text-xs ${
                         selectedReport === report ? 'bg-blue-100' : ''
                       }`}
-                      role="option"
                     >
                       {report}
                     </div>
@@ -145,12 +149,13 @@ const Reports = () => {
         {isLoading ? (
           <div className="text-center py-4">Loading reservations...</div>
         ) : (
-            <>
+          <>
             {selectedReport === 'Arrival Report' && <ArrivalReportTable data={reportData} />}
             {selectedReport === 'Departure Report' && (
-                 <DepartureReportTable fromDate={fromDate} toDate={toDate} />
+              <DepartureReportTable fromDate={fromDate} toDate={toDate} />
             )}
-            </>
+            {selectedReport === 'Police Enquiry Report' && <PoliceEnquiryReport data={reportData} />}
+          </>
         )}
       </div>
     </div>

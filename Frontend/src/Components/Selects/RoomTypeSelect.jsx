@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-const RoomTypeSelect = ({ formData, handleChange, errors }) => {
+const RoomTypeSelect = ({ value, onChange, token }) => {
   const [roomTypes, setRoomTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
@@ -9,7 +9,6 @@ const RoomTypeSelect = ({ formData, handleChange, errors }) => {
   useEffect(() => {
     const fetchRoomTypes = async () => {
       try {
-        const token = localStorage.getItem("token");
         if (!token) {
           setFetchError("User not authenticated.");
           setLoading(false);
@@ -17,12 +16,8 @@ const RoomTypeSelect = ({ formData, handleChange, errors }) => {
         }
 
         const res = await axios.get("http://localhost:5000/api/hotel/room-types", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
-
-        console.log("Room types response data:", res.data);
 
         if (Array.isArray(res.data)) {
           setRoomTypes(res.data);
@@ -32,7 +27,7 @@ const RoomTypeSelect = ({ formData, handleChange, errors }) => {
           setRoomTypes([]);
         }
       } catch (error) {
-        console.error("Error fetching room types:", error);
+        console.error("❌ Error fetching room types:", error);
         setFetchError("Failed to load room types.");
         setRoomTypes([]);
       } finally {
@@ -41,7 +36,7 @@ const RoomTypeSelect = ({ formData, handleChange, errors }) => {
     };
 
     fetchRoomTypes();
-  }, []);
+  }, [token]);
 
   return (
     <div className="mb-4">
@@ -54,29 +49,24 @@ const RoomTypeSelect = ({ formData, handleChange, errors }) => {
       ) : fetchError ? (
         <p className="text-red-500 text-sm">{fetchError}</p>
       ) : (
-        <>
-          <select
-            id="roomType"
-            name="roomType"
-            value={formData.roomType}
-            onChange={handleChange}
-            className={`w-full border p-2 rounded ${
-              errors.roomType ? "border-red-500" : ""
-            }`}
-            required
-          >
-            <option value="">Select Room Type</option>
-            {roomTypes.map(({ value, label }) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-
-          {errors.roomType && (
-            <p className="text-red-500 text-sm mt-1">{errors.roomType}</p>
-          )}
-        </>
+        <select
+          id="roomType"
+          name="roomType"
+          value={value}
+          onChange={(e) => {
+            console.log("📤 RoomType selected:", e.target.value);
+            onChange(e.target.value);
+          }}
+          className="w-full border p-2 rounded"
+          required
+        >
+          <option value="">Select Room Type</option>
+          {roomTypes.map(({ value, label }) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
       )}
     </div>
   );

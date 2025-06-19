@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-const RateTypeSelect = ({ roomType, formData, handleChange, errors }) => {
+const RateTypeSelect = ({ roomType, rateType, value, onChange, token }) => {
   const [ratePlans, setRatePlans] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState(null);
@@ -9,8 +9,8 @@ const RateTypeSelect = ({ roomType, formData, handleChange, errors }) => {
   useEffect(() => {
     console.log("🧪 roomType received in RateTypeSelect:", roomType);
 
-    if (!roomType) {
-      console.warn("❗ No roomType provided, skipping fetch.");
+    if (!roomType || !token) {
+     
       return;
     }
 
@@ -19,19 +19,12 @@ const RateTypeSelect = ({ roomType, formData, handleChange, errors }) => {
       setFetchError(null);
 
       try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          setFetchError("User not authenticated.");
-          setLoading(false);
-          return;
-        }
-
         const res = await axios.get("http://localhost:5000/api/hotel/rate-plans", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
           params: {
-            roomType, // 👈 using correct param name
+            roomType,
           },
         });
 
@@ -54,7 +47,7 @@ const RateTypeSelect = ({ roomType, formData, handleChange, errors }) => {
     };
 
     fetchRatePlans();
-  }, [roomType]);
+  }, [roomType, token]);
 
   return (
     <div className="mb-4">
@@ -70,14 +63,12 @@ const RateTypeSelect = ({ roomType, formData, handleChange, errors }) => {
         <select
           id="rateType"
           name="rateType"
-          value={formData.rateType}
+          value={value}
           onChange={(e) => {
             console.log("📩 Selected rateType:", e.target.value);
-            handleChange(e);
+            onChange(e.target.value);
           }}
-          className={`w-full border p-2 rounded ${
-            errors.rateType ? "border-red-500" : ""
-          }`}
+          className="w-full border p-2 rounded"
           required
         >
           <option value="">Select Rate Plan</option>
@@ -87,10 +78,6 @@ const RateTypeSelect = ({ roomType, formData, handleChange, errors }) => {
             </option>
           ))}
         </select>
-      )}
-
-      {errors.rateType && (
-        <p className="text-red-500 text-sm mt-1">{errors.rateType}</p>
       )}
     </div>
   );

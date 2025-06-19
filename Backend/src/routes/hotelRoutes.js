@@ -5,7 +5,7 @@ import { getRoomTypes } from "../controllers/Reservation/roomType.js";
 import { getRatePlans } from "../controllers/Reservation/getRatePlans.js";
 import { getRoomCount } from "../controllers/Reservation/noOfRooms.js";
 import { maxGuests } from "../controllers/Reservation/maxGuest.js";
-import { getAvailableRoomNumbers } from "../controllers/Reservation/roomNumber.js";
+import { getAvailableRoomNumbers } from "../controllers/roomController.js";
 import { createReservation, updateReservation, deleteReservation } from "../controllers/Reservation/reservationController.js";
 import { getRes } from "../controllers/Reservation/getReservation.js";
 import { getGuests, getPreviousStays } from "../controllers/Guest/guestController.js";
