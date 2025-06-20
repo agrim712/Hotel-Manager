@@ -1,16 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,useCallback } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import RoomTypeSelect from '../../Components/Selects/RoomTypeSelect';
-import RateTypeSelect from '../../Components/Selects/RateTypeSelect';
-import NumberOfRoomsDropdown from '../../Components/Selects/NoOfRoomTypeSelect';
-import MaxGuestsDisplay from '../../Components/Selects/MaxGuests';
 import AvailableRoomNumbers from '../../Components/Selects/RoomNumbers';
-import RoomAndRateSection from "../../Components/Selects/RoomAndRateSection";
-
+// import RoomAndRateSection from "../../Components/Selects/RoomAndRateSection";
+import RateTypeSelect from '../../Components/Selects/RateTypeSelect';
+import RoomTypeSelect from '../../Components/Selects/RoomTypeSelect';
+import NumberOfRoomsDropdown from '../../Components/Selects/NoOfRoomTypeSelect';
+import MaxGuestsInput from '../../Components/Selects/MaxGuests';
 // Reusable Input Component
 const FormInput = ({ label, name, value, onChange, type = 'text', error, required = false, ...props }) => (
   <div className="space-y-1">
@@ -59,6 +58,7 @@ const FormSelect = ({ label, name, value, onChange, options, error, required = f
 const CreateReservation = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedRoomNumbers, setSelectedRoomNumbers] = useState([]);
   const [errors, setErrors] = useState({});
     const [successMessage, setSuccessMessage] = useState('');
   const COUNTRY_API_URL = 'https://api.countrystatecity.in/v1/countries';
@@ -194,6 +194,14 @@ useEffect(() => {
     }));
   };
 
+const handleRoomNumbersChange = useCallback((rooms) => {
+  setSelectedRoomNumbers(rooms);
+  setFormData(prev => ({ ...prev, roomNumbers: rooms }));
+}, []);
+
+  const handleRoomNumberChange = useCallback((numRooms) => {
+    setFormData(prev => ({ ...prev, numRooms }));
+  }, [])
   // Handle file input change
   const handleFileChange = (e) => {
     setFormData((prev) => ({
@@ -454,7 +462,55 @@ const combineDateAndTime = (date, timeStr) => {
 
         {/* Room Type, Rate Plan, Quiet, Rooms */}
         
-        <RoomAndRateSection formData={formData} setFormData={setFormData} />
+        <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Room Type */}
+      <RoomTypeSelect
+        value={formData.roomType}
+        onChange={(val) =>
+          setFormData((prev) => ({
+            ...prev,
+            roomType: val,
+            rateType: "",
+            numberOfGuests: "",
+            numRooms: "",
+            roomNumbers: [],
+          }))
+        }
+        token={localStorage.getItem("token")}
+      />
+
+      {/* Rate Type */}
+      <RateTypeSelect
+        roomType={formData.roomType}
+        value={formData.rateType}
+        onChange={(val) =>
+          setFormData((prev) => ({ ...prev, rateType: val }))
+        }
+        token={localStorage.getItem("token")}
+      />
+
+      {/* Max Guests */}
+      <MaxGuestsInput
+        roomType={formData.roomType}
+        rateType={formData.rateType}
+        token={localStorage.getItem("token")}
+        onChange={(value) =>
+          setFormData((prev) => ({ ...prev, numberOfGuests: value }))
+        }
+      />
+
+      {/* Number of Rooms */}
+      <NumberOfRoomsDropdown
+        roomType={formData.roomType}
+        rateType={formData.rateType}
+        token={localStorage.getItem("token")}
+        checkInDate={formData.checkInDate}
+        checkInTime={formData.checkInTime}
+        checkOutDate={formData.checkOutDate}
+        checkOutTime={formData.checkOutTime}
+              onSelect={handleRoomNumberChange}
+      />
+    </div>
 
 
 
@@ -542,15 +598,15 @@ const combineDateAndTime = (date, timeStr) => {
 
         {/* Room No, Guest Name, Email, Phone */}
         <div className="grid grid-cols-4 gap-6">
-        <AvailableRoomNumbers
+
+<AvailableRoomNumbers
   roomType={formData.roomType}
   rateType={formData.rateType}
-  checkInDate={combineDateAndTime(formData.checkInDate, formData.checkInTime)}
-  checkOutDate={combineDateAndTime(formData.checkOutDate, formData.checkOutTime)}
+  checkInDate={formData.checkInDate}
+  checkOutDate={formData.checkOutDate}
   token={localStorage.getItem("token")}
-  onChange={(value) => {
-    setFormData(prev => ({ ...prev, roomNumbers: value }));
-  }}
+  onChange={handleRoomNumbersChange}
+  initialSelectedRooms={formData.roomNumbers || []}
 />
 
 

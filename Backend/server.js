@@ -10,6 +10,8 @@ import createSuperAdmin from './src/utils/initialSetup.js';
 import hotelRoutes from './src/routes/hotelRoutes.js';
 import paymentRoutes from './src/routes/paymentRoutes.js';
 import RestaurantRoutes from './src/routes/RestaurantRoutes.js'
+import cron from 'node-cron';
+import { updateRoomUnitStatus } from './src/controllers/Reservation/changeStatus.js';
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
@@ -74,6 +76,10 @@ app.get('/api/health', (req, res) => {
 
 // Error handling
 app.use(errorHandler);
+cron.schedule('* * * * *', () => {
+  console.log('⏳ Running scheduled room unit status check...');
+  updateRoomUnitStatus();
+});
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {

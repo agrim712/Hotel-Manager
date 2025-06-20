@@ -5,11 +5,10 @@ import { getRoomTypes } from "../controllers/Reservation/roomType.js";
 import { getRatePlans } from "../controllers/Reservation/getRatePlans.js";
 import { getRoomCount } from "../controllers/Reservation/noOfRooms.js";
 import { maxGuests } from "../controllers/Reservation/maxGuest.js";
-import { getAvailableRoomNumbers } from "../controllers/roomController.js";
+import { getAvailableRoomNumbers,getRoomsWithUnits } from "../controllers/roomController.js";
 import { createReservation, updateReservation, deleteReservation } from "../controllers/Reservation/reservationController.js";
 import { getRes } from "../controllers/Reservation/getReservation.js";
 import { getGuests, getPreviousStays } from "../controllers/Guest/guestController.js";
-import { getRoomsWithUnits } from '../controllers/roomController.js';
 import { getRoomCounts } from "../controllers/roomCountController.js";
 import { getAllRoomUnits } from "../controllers/roomUnit.js";
 import { updateRoomUnitStatus } from "../controllers/UpdateStatus.js";
@@ -73,7 +72,7 @@ router.get(
 
 router.get("/count", auth, authorizeRoles("HOTELADMIN"), getRoomCount);
 router.get("/maxguests", auth, authorizeRoles("HOTELADMIN"), maxGuests);
-router.get("/room-available-numbers", auth, authorizeRoles("HOTELADMIN"), getAvailableRoomNumbers);
+router.get("/available-rooms", auth, authorizeRoles("HOTELADMIN"), getAvailableRoomNumbers);
 
 // Reservation routes
 router.post(

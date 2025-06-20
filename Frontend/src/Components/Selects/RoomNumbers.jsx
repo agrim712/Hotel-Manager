@@ -1,93 +1,100 @@
-// RoomNumbers.jsx
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import axios from "axios";
 
-const API_BASE_URL = 'http://localhost:5000/api'; // Temporary - configure properly later
-
-const AvailableRoomNumbers = ({ 
-  roomType, 
-  rateType, 
-  checkInDate, 
-  checkOutDate, 
-  token, 
-  onChange 
+const AvailableRoomNumbers = ({
+  roomType,
+  rateType,
+  checkInDate,
+  checkOutDate,
+  token,
+  onChange,
+  initialSelectedRooms = []
 }) => {
   const [roomNumbers, setRoomNumbers] = useState([]);
-  const [selectedRooms, setSelectedRooms] = useState([]);
+  const [selectedRooms, setSelectedRooms] = useState(initialSelectedRooms);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const dropdownRef = useRef(null);
+  const isMounted = useRef(false);
+
+  // Fetch available rooms when parameters change
+  const fetchAvailableRooms = useCallback(async (controller) => {
+    if (!roomType || !rateType || !checkInDate || !checkOutDate || !token) {
+      setRoomNumbers([]);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await axios.get('http://localhost:5000/api/hotel/available-rooms', {
+        params: {
+          roomType,
+          rateType,
+          checkInDate: checkInDate.toISOString(),
+          checkOutDate: checkOutDate.toISOString()
+        },
+        headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal
+      });
+
+      if (response.data?.success) {
+        const available = response.data.rooms?.map(room => room.number) || [];
+        if (isMounted.current) {
+          setRoomNumbers(available);
+          // Filter selected rooms to only include available ones
+          setSelectedRooms(prev => prev.filter(num => available.includes(num)));
+        }
+      }
+    } catch (err) {
+      if (!axios.isCancel(err) && isMounted.current) {
+        setError(err.message);
+        setRoomNumbers([]);
+      }
+    } finally {
+      if (isMounted.current) {
+        setIsLoading(false);
+      }
+    }
+  }, [roomType, rateType, checkInDate, checkOutDate, token]);
 
   useEffect(() => {
+    isMounted.current = true;
     const controller = new AbortController();
+    fetchAvailableRooms(controller);
+    return () => {
+      isMounted.current = false;
+      controller.abort();
+    };
+  }, [fetchAvailableRooms]);
 
-    const fetchAvailableRooms = async () => {
-      // Skip if required data is missing
-      if (!roomType || !rateType || !checkInDate || !checkOutDate || !token) {
-        setRoomNumbers([]);
-        return;
-      }
+  // Handle room selection
+  const handleSelect = useCallback((roomNumber) => {
+    setSelectedRooms(prev => {
+      const newSelection = prev.includes(roomNumber)
+        ? prev.filter(n => n !== roomNumber)
+        : [...prev, roomNumber];
+      return newSelection;
+    });
+  }, []);
 
-      setIsLoading(true);
-      setError(null);
+  // Notify parent of selection changes
+  useEffect(() => {
+    if (onChange) {
+      onChange(selectedRooms);
+    }
+  }, [selectedRooms, onChange]);
 
-      try {
-        const response = await axios.get(
-          `${API_BASE_URL}/hotel/available-rooms`,
-          {
-            params: {
-              roomType,
-              rateType,
-              checkInDate: checkInDate.toISOString(),
-              checkOutDate: checkOutDate.toISOString()
-            },
-            headers: { 
-              Authorization: `Bearer ${token}` 
-            },
-            signal: controller.signal
-          }
-        );
-
-        if (response.data?.success && response.data?.rooms) {
-          setRoomNumbers(response.data.rooms.map(room => room.number));
-        } else {
-          throw new Error(response.data?.message || 'No rooms available');
-        }
-      } catch (error) {
-        if (!axios.isCancel(error)) {
-          console.error("Error fetching available room numbers:", error);
-          setError(error.response?.data?.message || error.message);
-          setRoomNumbers([]);
-        }
-      } finally {
-        setIsLoading(false);
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsOpen(false);
       }
     };
 
-    fetchAvailableRooms();
-
-    return () => controller.abort();
-  }, [roomType, rateType, checkInDate, checkOutDate, token]);
-
-  // ... rest of your component code ...
-
-  const handleSelect = (num) => {
-    const updated = selectedRooms.includes(num)
-      ? selectedRooms.filter(n => n !== num)
-      : [...selectedRooms, num];
-    
-    setSelectedRooms(updated);
-    onChange?.(updated);
-  };
-
-  const handleClickOutside = (e) => {
-    if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-      setIsOpen(false);
-    }
-  };
-
-  useEffect(() => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
@@ -97,8 +104,7 @@ const AvailableRoomNumbers = ({
       <label className="block text-sm font-medium text-gray-700 mb-1">
         Available Room Numbers
       </label>
-
-      {/* Input-like display */}
+      
       <div
         onClick={() => setIsOpen(!isOpen)}
         className={`w-full border ${error ? 'border-red-500' : 'border-gray-300'} rounded px-3 py-2 cursor-pointer bg-white flex items-center justify-between`}
@@ -113,11 +119,8 @@ const AvailableRoomNumbers = ({
         )}
       </div>
 
-      {error && (
-        <p className="mt-1 text-sm text-red-600">{error}</p>
-      )}
+      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
 
-      {/* Dropdown options */}
       {isOpen && (
         <div className="absolute z-10 mt-1 w-full border border-gray-300 bg-white rounded shadow-lg max-h-60 overflow-y-auto">
           {roomNumbers.length > 0 ? (
@@ -126,9 +129,7 @@ const AvailableRoomNumbers = ({
                 key={num}
                 onClick={() => handleSelect(num)}
                 className={`px-4 py-2 cursor-pointer hover:bg-blue-50 ${
-                  selectedRooms.includes(num) 
-                    ? "bg-blue-100 font-medium text-blue-800" 
-                    : ""
+                  selectedRooms.includes(num) ? "bg-blue-100 font-medium" : ""
                 }`}
               >
                 {num}
@@ -136,7 +137,7 @@ const AvailableRoomNumbers = ({
             ))
           ) : (
             <div className="px-4 py-2 text-gray-500 italic">
-              {isLoading ? "Loading rooms..." : "No available rooms found"}
+              {isLoading ? "Loading..." : "No rooms available"}
             </div>
           )}
         </div>
@@ -145,4 +146,4 @@ const AvailableRoomNumbers = ({
   );
 };
 
-export default AvailableRoomNumbers;
+export default React.memo(AvailableRoomNumbers);

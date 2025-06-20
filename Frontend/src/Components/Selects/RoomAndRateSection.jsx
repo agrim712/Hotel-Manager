@@ -1,9 +1,8 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
 import RoomTypeSelect from "../../Components/Selects/RoomTypeSelect";
 import RateTypeSelect from "../../Components/Selects/RateTypeSelect";
 import MaxGuestsDisplay from "../../Components/Selects/MaxGuests";
 import NumberOfRoomsDropdown from "../../Components/Selects/NoOfRoomTypeSelect";
-
 const RoomAndRateSection = ({ formData, setFormData }) => {
   const token = localStorage.getItem("token");
 
@@ -19,6 +18,7 @@ const RoomAndRateSection = ({ formData, setFormData }) => {
             rateType: "",
             numberOfGuests: "",
             numRooms: "",
+            roomNumbers: [],
           }))
         }
         token={token}
@@ -49,6 +49,10 @@ const RoomAndRateSection = ({ formData, setFormData }) => {
         roomType={formData.roomType}
         rateType={formData.rateType}
         token={token}
+        checkInDate={formData.checkInDate}
+        checkInTime={formData.checkInTime}
+        checkOutDate={formData.checkOutDate}
+        checkOutTime={formData.checkOutTime}
         onSelect={(value) =>
           setFormData((prev) => ({ ...prev, numRooms: value }))
         }

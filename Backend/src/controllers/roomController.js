@@ -1,145 +1,80 @@
-// src/controllers/roomController.js
-import { PrismaClient } from '@prisma/client';
+// src/controllers/availableRoomsController.js
+import { PrismaClient } from "@prisma/client";
+
 const prisma = new PrismaClient();
 
-
-
-
+// src/controllers/roomController.js
 
 export const getAvailableRoomNumbers = async (req, res) => {
+  const {hotelId} = req.user;
   try {
-    const { roomType, rateType, checkInDate, checkOutDate } = req.query;
-    const hotelId = req.user?.hotelId;
+    const { checkInDate, checkOutDate, roomType, rateType } = req.query;
 
-    // Input validation
-    if (!hotelId) {
-      return res.status(400).json({
-        success: false,
-        message: "Authentication error: Missing hotelId"
-      });
-    }
-
-    if (!roomType || !checkInDate || !checkOutDate) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing required parameters: roomType, checkInDate, or checkOutDate"
-      });
-    }
-
-    // Date validation
-    const checkIn = new Date(checkInDate);
-    const checkOut = new Date(checkOutDate);
-
-    if (!(checkIn instanceof Date) || isNaN(checkIn.getTime())) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid checkInDate format - must be ISO 8601 format"
-      });
-    }
-
-    if (!(checkOut instanceof Date) || isNaN(checkOut.getTime())) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid checkOutDate format - must be ISO 8601 format"
-      });
-    }
-
-    // Business logic validation
-    const now = new Date();
-    if (checkIn < now) {
-      return res.status(400).json({
-        success: false,
-        message: "Check-in date must be in the future"
-      });
-    }
-
-    if (checkOut <= checkIn) {
-      return res.status(400).json({
-        success: false,
-        message: "Check-out date must be after check-in date"
-      });
-    }
-
-    // Find available rooms
+    // Step 1: Get all RoomUnits matching roomType and rateType
     const roomUnits = await prisma.roomUnit.findMany({
-      where: {
-        room: {
-          hotelId,
-          name: roomType,
-          ...(rateType && { rateType }) // Optional rateType filter
-        }
+  where: {
+    room: {
+      hotelId: hotelId,
+      name: roomType,     // if you're matching by Room.name, not RoomType (adjust this!)
+      rateType: rateType,
+    },
+  },
+      select: {
+        id: true,
+        roomNumber: true,
       },
-      include: {
-        room: {
-          select: {
-            name: true,
-            rateType: true,
-            maxGuests: true
-          }
-        }
-      }
     });
 
-    if (roomUnits.length === 0) {
-      return res.json({
-        success: true,
-        availableRooms: [],
-        message: "No rooms found matching criteria"
-      });
+    const roomUnitIds = roomUnits.map((room) => room.id);
+
+    if (roomUnitIds.length === 0) {
+      return res.status(200).json({ availableRooms: [] });
     }
 
-    // Find overlapping reservations
-    const overlappingReservations = await prisma.reservation.findMany({
+    // Step 2: Find reservations that overlap with the date range
+    const conflictingReservations = await prisma.reservation.findMany({
       where: {
-        hotelId,
         roomUnitId: {
-          in: roomUnits.map(unit => unit.id)
+          in: roomUnitIds,
+        },
+        state: {
+          notIn: ['CANCELLED', 'NO_SHOW'],
         },
         OR: [
           {
-            checkIn: { lt: checkOut },
-            checkOut: { gt: checkIn }
-          }
+            checkIn: {
+              lt: new Date(checkOutDate),
+            },
+            checkOut: {
+              gt: new Date(checkInDate),
+            },
+          },
         ],
-        status: {
-          not: 'CANCELLED'
-        }
       },
       select: {
-        roomUnitId: true
-      }
+        roomUnitId: true,
+      },
     });
 
-    const bookedUnitIds = new Set(overlappingReservations.map(r => r.roomUnitId));
+    const bookedRoomIds = conflictingReservations.map((r) => r.roomUnitId);
 
-    // Filter available units and format response
-    const availableRooms = roomUnits
-      .filter(unit => !bookedUnitIds.has(unit.id))
-      .map(unit => ({
-        number: unit.roomNumber,
-        type: unit.room.name,
-        rateType: unit.room.rateType,
-        maxGuests: unit.room.maxGuests
-      }));
+    // Step 3: Filter out booked rooms
+    const availableRooms = roomUnits.filter(
+      (room) => !bookedRoomIds.includes(room.id)
+    );
 
-    return res.json({
-      success: true,
-      availableRooms,
-      count: availableRooms.length,
-      checkIn: checkIn.toISOString(),
-      checkOut: checkOut.toISOString()
-    });
-
+    res.status(200).json({
+  success: true,
+  rooms: availableRooms.map((room) => ({
+    id: room.id,
+    number: room.roomNumber, // ✅ match frontend
+  })),
+});
   } catch (error) {
-    console.error("Error in getAvailableRoomNumbers:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-      error: error.message
-    });
+    console.error('Error in getAvailableRoomNumbers:', error);
+    res.status(500).json({ success: false, message: 'Internal server error.', error: error.message });
   }
 };
-
 export const getRoomsWithUnits = async (req, res) => {
   const { hotelId } = req.user;
 
