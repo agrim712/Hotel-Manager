@@ -10,6 +10,7 @@ import createSuperAdmin from './src/utils/initialSetup.js';
 import hotelRoutes from './src/routes/hotelRoutes.js';
 import paymentRoutes from './src/routes/paymentRoutes.js';
 import RestaurantRoutes from './src/routes/RestaurantRoutes.js'
+import Superadmin from "./src/routes/Superadmin.js"
 import cron from 'node-cron';
 import { updateRoomUnitStatus } from './src/controllers/Reservation/changeStatus.js';
 const app = express();
@@ -67,6 +68,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/hotel', hotelRoutes);
 app.use('/api/menu', RestaurantRoutes);
+app.use("/api/superadmin",Superadmin);
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ 

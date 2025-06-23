@@ -16,6 +16,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
 import fs from 'fs';
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 // Get __filename equivalent
 const __filename = fileURLToPath(import.meta.url);
@@ -132,6 +135,108 @@ router.get(
   authorizeRoles('HOTELADMIN'),
   getAllRoomUnits
 );
+router.get('/reports/day-wise-report', auth, authorizeRoles('HOTELADMIN'), async (req, res) => {
+  try {
+    const { from, to } = req.query;
+
+    if (!from || !to) {
+      return res.status(400).json({ message: 'Missing from/to date in query' });
+    }
+
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    const hotelId = req.user.hotelId;
+
+    const reservations = await prisma.reservation.findMany({
+      where: {
+        hotelId: hotelId,
+        checkIn: {
+          gte: fromDate,
+          lte: toDate,
+        },
+      },
+      select: {
+        checkIn: true,
+        totalAmount: true,
+      },
+    });
+
+    const revenueMap = {};
+
+    reservations.forEach((res) => {
+      // Use local date string in YYYY-MM-DD
+      const dateStr = res.checkIn.toLocaleDateString('sv-SE'); 
+      revenueMap[dateStr] = (revenueMap[dateStr] || 0) + Number(res.totalAmount || 0);
+    });
+
+    res.json({ data: revenueMap });
+  } catch (err) {
+    console.error('Error fetching day wise report:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
+// Room Wise Report
+router.get('/reports/room-wise-report', auth, authorizeRoles('HOTELADMIN'), async (req, res) => {
+  try {
+    const { from, to } = req.query;
+
+    if (!from || !to) {
+      return res.status(400).json({ message: 'Missing from/to date in query' });
+    }
+
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    const hotelId = req.user.hotelId;
+
+    const reservations = await prisma.reservation.findMany({
+  where: {
+    hotelId,
+    checkIn: {
+      gte: fromDate,
+      lte: toDate,
+    },
+  },
+  select: {
+    roomNo: true,
+    perDayRate: true,
+    perDayTax: true,
+    nights: true,
+    taxInclusive: true,
+  },
+});
+
+
+    const roomWiseReport = {};
+
+    for (const resv of reservations) {
+      const rate = resv.perDayRate ?? 0;
+      const tax = resv.perDayTax ?? 0;
+      const nights = resv.nights ?? 1;
+      const taxInclusive = resv.taxInclusive ?? true;
+
+      const total = taxInclusive
+        ? rate * nights
+        : (rate + tax) * nights;
+
+      if (!roomWiseReport[resv.roomNo]) {
+        roomWiseReport[resv.roomNo] = 0;
+      }
+
+      roomWiseReport[resv.roomNo] += total;
+    }
+
+    res.json({ data: roomWiseReport });
+  } catch (err) {
+    console.error('Error generating Room Wise Report:', err);
+    res.status(500).json({ error: 'Failed to generate Room Wise Report' });
+  }
+});
+
+
+
+
 
 
 export default router;

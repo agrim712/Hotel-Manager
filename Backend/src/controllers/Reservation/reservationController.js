@@ -185,4 +185,3 @@ export const updateReservation = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
-

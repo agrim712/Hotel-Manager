@@ -24,7 +24,7 @@ import GroupReservationForm from "./pages/PMS/GroupReservation";
 import GuestListHeader from './pages/PMS/Guests';
 import StayViewPage from './pages/PMS/stayview'; // ✅ newly added
 import RoomsView from './pages/PMS/RoomsView';
-
+import OnboardedHotels from './pages/SuperAdmin/OnboardedHotels';
 import './index.css';
 import { ReservationProvider } from './context/ReservationContext';
 import RestaurantManagement from './pages/Resturant/Resturant_dashboard';
@@ -65,6 +65,8 @@ const handleLogout = () => {
           <Route path="/onboard" element={<Onboard />} />
           <Route path="/login" element={<Login />} />
           <Route path="/superadmin-dashboard" element={<SuperadminDashboard />} />
+          <Route path="/onboarded-hotels" element={<OnboardedHotels />} />
+          
           <Route 
             path="/hoteladmin-dashboard" 
             element={
