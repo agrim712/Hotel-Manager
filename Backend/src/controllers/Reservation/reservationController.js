@@ -97,7 +97,8 @@ export const createReservation = async (req, res) => {
         identity: data.identity,
         idDetail: data.idDetail,
         idProof: data.idProof || null,
-        photoIdPath: photoFile ? `/api/hotel/photos/${photoFile.filename}` : null,
+        photoIdPath: photoFile ? `/uploads/${photoFile.filename}` : null,
+
         hotelId,
         roomUnitId: matchingRoomUnits[0]?.id,
         connectedRooms: {

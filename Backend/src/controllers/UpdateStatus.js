@@ -1,5 +1,9 @@
 import { PrismaClient } from '@prisma/client';
-import { RoomStatus } from '@prisma/client';
+import pkg from '@prisma/client';
+const { RoomStatus } = pkg;
+
+
+
 
 const prisma = new PrismaClient();
 

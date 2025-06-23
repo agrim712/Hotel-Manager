@@ -33,7 +33,7 @@ const PoliceEnquiryReport = ({ data = [] }) => {
               <tr key={index} className="border-b hover:bg-gray-50">
                 <td className="px-3 py-2 border text-center">{entry.roomNo}</td>
                 <td className="px-3 py-2 border">{entry.guestName}</td>
-                <td className="px-3 py-2 border">{entry.mobile}</td>
+                <td className="px-3 py-2 border">{entry.phone}</td>
                 <td className="px-3 py-2 border">{entry.email}</td>
                 <td className="px-3 py-2 border">{entry.gender}</td>
                 <td className="px-3 py-2 border">{entry.dob}</td>
@@ -42,19 +42,19 @@ const PoliceEnquiryReport = ({ data = [] }) => {
                 <td className="px-3 py-2 border">{entry.address}</td>
                 <td className="px-3 py-2 border whitespace-nowrap">{entry.checkIn}</td>
                 <td className="px-3 py-2 border whitespace-nowrap">{entry.checkOut}</td>
-                <td className="px-3 py-2 border">{entry.idType || '-'}</td>
-                <td className="px-3 py-2 border text-blue-600 underline">
-                  {entry.idLinks?.map((link, i) => (
+                <td className="px-3 py-2 border">{entry.identity || '-'}</td>
+                <td className="px-3 py-2 border text-blue-600 underline text-center">
+                  {entry.photoIdPath ? (
                     <a
-                      key={i}
-                      href={link}
+                      href={`http://localhost:5000${entry.photoIdPath}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mr-2"
                     >
-                      #{i + 1}
+                      View
                     </a>
-                  ))}
+                  ) : (
+                    '-'
+                  )}
                 </td>
               </tr>
             ))
