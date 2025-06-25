@@ -14,7 +14,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "axios": "^1.9.0",
     "file-saver": "^2.0.5",
-    "framer-motion": "^12.18.1",
+    "framer-motion": "^12.19.1",
     "lucide-react": "^0.514.0",
     "reacr": "^1.0.0",
     "react": "^19.1.0",

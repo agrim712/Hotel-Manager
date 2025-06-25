@@ -13,6 +13,7 @@ export const createHotel = async (req, res) => {
     });
 
     if (existingHotel) {
+      // ✅ Update existing hotel
       const updatedHotel = await prisma.hotel.update({
         where: { address: trimmedAddress },
         data: {
@@ -27,7 +28,7 @@ export const createHotel = async (req, res) => {
           email: validated.email,
           propertyType: validated.propertyType,
           currency: validated.currency,
-          products: validated.products,
+          products: validated.products, // ✅ Save selected products here
         }
       });
 
@@ -48,7 +49,6 @@ export const createHotel = async (req, res) => {
             }
           });
 
-          // Validate each room unit before inserting
           const roomUnitData = room.roomNumbers.map(roomNumber => {
             const validatedUnit = roomUnitSchema.parse({
               roomNumber,
@@ -61,9 +61,9 @@ export const createHotel = async (req, res) => {
         }
       }
 
-
       return res.status(200).json({ message: "Hotel updated successfully", hotel: updatedHotel });
     } else {
+      // ✅ Create new hotel
       const newHotel = await prisma.hotel.create({
         data: {
           name: validated.name,
@@ -78,7 +78,7 @@ export const createHotel = async (req, res) => {
           email: validated.email,
           propertyType: validated.propertyType,
           currency: validated.currency,
-          products: validated.products,
+          products: validated.products, // ✅ Save selected products here
         }
       });
 
@@ -108,7 +108,6 @@ export const createHotel = async (req, res) => {
           await prisma.roomUnit.createMany({ data: roomUnitData });
         }
       }
-
 
       return res.status(201).json({ message: "Hotel created successfully", hotel: newHotel });
     }

@@ -14,10 +14,9 @@ const validatePassword = (password) => {
   if (password.length < PASSWORD_MIN_LENGTH) {
     throw new Error(`Password must be at least ${PASSWORD_MIN_LENGTH} characters`);
   }
-  // You can add more complex validation rules if needed
 };
 
-// Login Function
+// SUPERADMIN LOGIN
 export const login = async (req, res) => {
   const { email, password, role } = req.body;
 
@@ -26,13 +25,12 @@ export const login = async (req, res) => {
       return res.status(400).json({ error: 'Email, password, and role are required' });
     }
 
-    // SUPERADMIN login
+    // --- SUPERADMIN Login ---
     if (role === 'SUPERADMIN') {
       if (email !== SUPERADMIN_EMAIL || password !== SUPERADMIN_PASSWORD) {
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
-      // Find or create SUPERADMIN
       let user = await prisma.user.findUnique({ where: { email } });
 
       if (!user) {
@@ -62,7 +60,7 @@ export const login = async (req, res) => {
       });
     }
 
-    // HOTELADMIN login
+    // --- HOTELADMIN Login ---
     if (role === 'HOTELADMIN') {
       const user = await prisma.user.findFirst({
         where: {
@@ -97,7 +95,8 @@ export const login = async (req, res) => {
         role: user.role,
         hotelId: user.hotelId,
         hotelName: user.hotel?.name || null,
-        isPaymentDone: user.hotel?.isPaymentDone || false // ✅ Add this
+        isPaymentDone: user.hotel?.isPaymentDone || false,
+        products: user.hotel?.products || [] // ✅ Send purchased modules
       });
     }
 
@@ -109,7 +108,7 @@ export const login = async (req, res) => {
   }
 };
 
-// Create Hotel Admin
+// --- Create HOTELADMIN ---
 export const createHotelAdmin = async (req, res) => {
   const { hotelEmail, hotelPassword, hotelName, hotelAddress } = req.body;
 
@@ -120,14 +119,6 @@ export const createHotelAdmin = async (req, res) => {
 
     validatePassword(hotelPassword);
 
-    // const existingHotel = await prisma.hotel.findFirst({
-    //   where: { name: hotelName }
-    // });
-
-    // if (existingHotel) {
-    //   return res.status(400).json({ error: 'Hotel with this name already exists' });
-    // }
-
     const existingUser = await prisma.user.findUnique({
       where: { email: hotelEmail }
     });
@@ -136,7 +127,6 @@ export const createHotelAdmin = async (req, res) => {
       return res.status(400).json({ error: 'Email already in use' });
     }
 
-    // Create hotel and hotel admin inside a transaction
     const hotel = await prisma.hotel.create({
       data: {
         name: hotelName,
@@ -152,6 +142,7 @@ export const createHotelAdmin = async (req, res) => {
         hotelId: hotel.id
       }
     });
+
     const token = jwt.sign(
       {
         userId: user.id,
@@ -169,16 +160,14 @@ export const createHotelAdmin = async (req, res) => {
       userId: user.id,
       token
     });
-    
 
   } catch (err) {
     console.error("Error creating hotel admin:", err);
-  
+
     if (err.code === 'P2002' && err.meta?.target?.includes('address')) {
       return res.status(400).json({ error: "Hotel with this address already exists." });
     }
-  
+
     return res.status(500).json({ error: "Internal server error" });
   }
 };
-
