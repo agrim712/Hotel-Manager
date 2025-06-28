@@ -12,6 +12,7 @@ import { getGuests, getPreviousStays } from "../controllers/Guest/guestControlle
 import { getRoomCounts } from "../controllers/roomCountController.js";
 import { getAllRoomUnits } from "../controllers/roomUnit.js";
 import { updateRoomUnitStatus } from "../controllers/UpdateStatus.js";
+import { markRoomForMaintenance, endMaintenance } from '../controllers/Reservation/maintenanceController.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
@@ -65,6 +66,8 @@ router.get(
   authorizeRoles('HOTELADMIN'),
   getRoomTypes
 );
+// src/routes/roomUnitRoutes.js
+router.get('/roomsunits', auth,authorizeRoles('HOTELADMIN'),getAllRoomUnits);
 
 router.get(
   '/rate-plans',
@@ -135,6 +138,8 @@ router.get(
   authorizeRoles('HOTELADMIN'),
   getAllRoomUnits
 );
+router.post('/maintenance', auth, authorizeRoles('HOTELADMIN'), markRoomForMaintenance);
+router.post('/maintenance/end', auth, authorizeRoles('HOTELADMIN'), endMaintenance);
 router.get('/reports/day-wise-report', auth, authorizeRoles('HOTELADMIN'), async (req, res) => {
   try {
     const { from, to } = req.query;

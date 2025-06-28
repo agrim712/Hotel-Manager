@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -28,7 +22,7 @@ model Hotel {
   id             String        @id @default(cuid())
   name           String
   address        String        @unique
-  country        String? // <-- optional
+  country        String?
   city           String?
   contactPerson  String?
   phoneCode      String?
@@ -42,7 +36,7 @@ model Hotel {
   rooms          Room[]
   users          User[]
   reservations   Reservation[]
-  isPaymentDone  Boolean       @default(false) // Tracks if the payment for the hotel has been completed
+  isPaymentDone  Boolean       @default(false)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 }
@@ -55,11 +49,11 @@ model Room {
   rateType       String
   rate           Float
   extraAdultRate Float?
-  roomNumbers    String[] // ✅ Still store this for onboarding
+  roomNumbers    String[]
   hotelId        String
   hotel          Hotel      @relation(fields: [hotelId], references: [id])
   roomUnits      RoomUnit[]
-    reservations Reservation[] @relation("RoomToReservation")
+  reservations   Reservation[] @relation("RoomToReservation")
 }
 
 model RoomUnit {
@@ -70,10 +64,8 @@ model RoomUnit {
   floor        Int?
   roomId       String
   room         Room          @relation(fields: [roomId], references: [id])
-
-  reservations Reservation[] // ⬅️ Add this line for the back relation
+  reservations Reservation[]
 }
-
 
 model Reservation {
   id              String    @id @default(uuid())
@@ -81,7 +73,7 @@ model Reservation {
   checkOut        DateTime
   nights          Int
   roomType        String
-  rateType        String         // updated field name to match frontend
+  rateType        String
   guests          Int
   rooms           Int
   bookedBy        String
@@ -91,7 +83,7 @@ model Reservation {
   perDayRate      Float
   perDayTax       Float
   taxInclusive    Boolean
-  totalAmount     Float?         // optional, if you want to store total
+  totalAmount     Float?
   roomNo          String
   guestName       String
   email           String
@@ -110,36 +102,36 @@ model Reservation {
   photoIdPath     String?
   hotelId         String
   hotel           Hotel     @relation(fields: [hotelId], references: [id])
-
   roomUnitId      String?
   roomUnit        RoomUnit? @relation(fields: [roomUnitId], references: [id])
-
   connectedRooms  Room[]    @relation("RoomToReservation")
   createdAt       DateTime  @default(now())
+  isMaintenance   Boolean   @default(false)
 }
+
 model R_Category {
   id          Int      @id @default(autoincrement())
   name        String   @unique
   description String?
-  items       R_Item[]  // ✅ Changed from Item[] to R_Item[]
+  items       R_Item[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
 model R_Item {
-  id          Int      @id @default(autoincrement())
+  id          Int        @id @default(autoincrement())
   name        String
   price       Float
   description String?
-  spiceLevel  String   @default("Mild")
+  spiceLevel  String     @default("Mild")
   allergens   String[]
-  vegetarian  Boolean  @default(false)
-  available   Boolean  @default(true)
-  prepTime    Int      @default(15)
-  category    R_Category @relation(fields: [categoryId], references: [id])  // ✅ Changed from Category to R_Category
+  vegetarian  Boolean    @default(false)
+  available   Boolean    @default(true)
+  prepTime    Int        @default(15)
+  category    R_Category @relation(fields: [categoryId], references: [id])
   categoryId  Int
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   @@unique([name, categoryId])
 }

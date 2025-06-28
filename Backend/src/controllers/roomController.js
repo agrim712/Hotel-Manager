@@ -6,19 +6,20 @@ const prisma = new PrismaClient();
 // src/controllers/roomController.js
 
 export const getAvailableRoomNumbers = async (req, res) => {
-  const {hotelId} = req.user;
+  const { hotelId } = req.user;
   try {
     const { checkInDate, checkOutDate, roomType, rateType } = req.query;
 
     // Step 1: Get all RoomUnits matching roomType and rateType
     const roomUnits = await prisma.roomUnit.findMany({
-  where: {
-    room: {
-      hotelId: hotelId,
-      name: roomType,     // if you're matching by Room.name, not RoomType (adjust this!)
-      rateType: rateType,
-    },
-  },
+      where: {
+        room: {
+          hotelId: hotelId,
+          name: roomType,
+          rateType: rateType,
+        },
+        status: "AVAILABLE", // Ensure room is not under maintenance
+      },
       select: {
         id: true,
         roomNumber: true,
@@ -34,20 +35,12 @@ export const getAvailableRoomNumbers = async (req, res) => {
     // Step 2: Find reservations that overlap with the date range
     const conflictingReservations = await prisma.reservation.findMany({
       where: {
-        roomUnitId: {
-          in: roomUnitIds,
-        },
-        state: {
-          notIn: ['CANCELLED', 'NO_SHOW'],
-        },
-        OR: [
+        roomUnitId: { in: roomUnitIds },
+        state: { notIn: ['CANCELLED', 'NO_SHOW'] }, // Only exclude cancelled/no-show
+        OR: [ // Correct overlap detection
           {
-            checkIn: {
-              lt: new Date(checkOutDate),
-            },
-            checkOut: {
-              gt: new Date(checkInDate),
-            },
+            checkIn: { lt: new Date(checkOutDate) },
+            checkOut: { gt: new Date(checkInDate) },
           },
         ],
       },
@@ -64,15 +57,19 @@ export const getAvailableRoomNumbers = async (req, res) => {
     );
 
     res.status(200).json({
-  success: true,
-  rooms: availableRooms.map((room) => ({
-    id: room.id,
-    number: room.roomNumber, // ✅ match frontend
-  })),
-});
+      success: true,
+      rooms: availableRooms.map((room) => ({
+        id: room.id,
+        roomNumber: room.roomNumber, // ✅ Correct field name
+      })),
+    });
   } catch (error) {
     console.error('Error in getAvailableRoomNumbers:', error);
-    res.status(500).json({ success: false, message: 'Internal server error.', error: error.message });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Internal server error.', 
+      error: error.message 
+    });
   }
 };
 export const getRoomsWithUnits = async (req, res) => {

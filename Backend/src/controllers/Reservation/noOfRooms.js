@@ -40,19 +40,17 @@ export const getRoomCount = async (req, res) => {
 
     // Fetch reservations that overlap with the given checkIn and checkOut
     const conflictingReservations = await prisma.reservation.findMany({
-      where: {
-        roomUnitId: { in: roomUnitIds },
-        OR: [
-          {
-            checkIn: {
-              lt: new Date(checkOut),
-            },
-            checkOut: {
-              gt: new Date(checkIn),
-            },
-          },
-        ],
+        where: {
+    roomUnitId: { in: roomUnitIds },
+    AND: [
+      {
+        checkIn: { lt: new Date(checkOut) },
       },
+      {
+        checkOut: { gt: new Date(checkIn) },
+      },
+    ],
+  },
       select: {
         roomUnitId: true,
       },

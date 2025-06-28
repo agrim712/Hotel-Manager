@@ -30,24 +30,28 @@ const AvailableRoomNumbers = ({
 
     try {
       const response = await axios.get('http://localhost:5000/api/hotel/available-rooms', {
-        params: {
-          roomType,
-          rateType,
-          checkInDate: checkInDate.toISOString(),
-          checkOutDate: checkOutDate.toISOString()
-        },
-        headers: { Authorization: `Bearer ${token}` },
-        signal: controller.signal
-      });
+  params: {
+    roomType,
+    rateType,
+    checkInDate: checkInDate.toISOString(),
+    checkOutDate: checkOutDate.toISOString()
+  },
+  headers: { Authorization: `Bearer ${token}` },
+  signal: controller.signal
+});
 
-      if (response.data?.success) {
-        const available = response.data.rooms?.map(room => room.number) || [];
-        if (isMounted.current) {
-          setRoomNumbers(available);
-          // Filter selected rooms to only include available ones
-          setSelectedRooms(prev => prev.filter(num => available.includes(num)));
-        }
-      }
+if (response.data?.success) {
+  const availableRooms = response.data.rooms || [];
+  if (isMounted.current) {
+    setRoomNumbers(availableRooms);
+    // Filter selected rooms to only include available ones
+    setSelectedRooms(prev => 
+      prev.filter(selected => 
+        availableRooms.some(room => room.roomNumber === selected)
+      )
+    );
+  }
+}
     } catch (err) {
       if (!axios.isCancel(err) && isMounted.current) {
         setError(err.message);
@@ -124,15 +128,15 @@ const AvailableRoomNumbers = ({
       {isOpen && (
         <div className="absolute z-10 mt-1 w-full border border-gray-300 bg-white rounded shadow-lg max-h-60 overflow-y-auto">
           {roomNumbers.length > 0 ? (
-            roomNumbers.map((num) => (
+            roomNumbers.map((room) => (
               <div
-                key={num}
-                onClick={() => handleSelect(num)}
+                key={room.id}
+                onClick={() => handleSelect(room.roomNumber)}
                 className={`px-4 py-2 cursor-pointer hover:bg-blue-50 ${
-                  selectedRooms.includes(num) ? "bg-blue-100 font-medium" : ""
+                  selectedRooms.includes(room.roomNumber) ? "bg-blue-100 font-medium" : ""
                 }`}
               >
-                {num}
+                {room.roomNumber}
               </div>
             ))
           ) : (

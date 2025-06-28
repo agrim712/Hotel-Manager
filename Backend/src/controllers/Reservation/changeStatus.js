@@ -6,7 +6,8 @@ export const updateRoomUnitStatus = async () => {
   try {
     const now = new Date();
 
-    const reservations = await prisma.reservation.findMany({
+    // Get all active reservations (both regular and maintenance)
+    const activeReservations = await prisma.reservation.findMany({
       where: {
         checkIn: { lte: now },
         checkOut: { gt: now },
@@ -14,11 +15,19 @@ export const updateRoomUnitStatus = async () => {
       },
       select: {
         roomUnitId: true,
+        isMaintenance: true,
       },
     });
 
-    const bookedRoomUnitIds = reservations.map(res => res.roomUnitId);
+    const bookedRoomUnitIds = activeReservations
+      .filter(res => !res.isMaintenance)
+      .map(res => res.roomUnitId);
 
+    const maintenanceRoomUnitIds = activeReservations
+      .filter(res => res.isMaintenance)
+      .map(res => res.roomUnitId);
+
+    // Update BOOKED rooms
     if (bookedRoomUnitIds.length > 0) {
       await prisma.roomUnit.updateMany({
         where: {
@@ -30,11 +39,23 @@ export const updateRoomUnitStatus = async () => {
       });
     }
 
-    // Reset others to AVAILABLE
+    // Update MAINTENANCE rooms
+    if (maintenanceRoomUnitIds.length > 0) {
+      await prisma.roomUnit.updateMany({
+        where: {
+          id: { in: maintenanceRoomUnitIds },
+        },
+        data: {
+          status: 'MAINTENANCE',
+        },
+      });
+    }
+
+    // Reset others to AVAILABLE (only those not in either active set)
     await prisma.roomUnit.updateMany({
       where: {
-        id: { notIn: bookedRoomUnitIds },
-        status: 'BOOKED',
+        id: { notIn: [...bookedRoomUnitIds, ...maintenanceRoomUnitIds] },
+        status: { not: 'AVAILABLE' },
       },
       data: {
         status: 'AVAILABLE',
@@ -45,6 +66,6 @@ export const updateRoomUnitStatus = async () => {
   } catch (error) {
     console.error("❌ Error updating room status:", error);
   } finally {
-    await prisma.$disconnect(); // Disconnect to avoid leaking connections
+    await prisma.$disconnect();
   }
 };
