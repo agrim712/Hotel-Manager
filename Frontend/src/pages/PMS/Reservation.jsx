@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { FaDownload, FaUpload, FaSearch, FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
+import { FaDownload, FaUpload, FaSearch, FaPlus, FaEdit, FaTrash,FaFileInvoice } from 'react-icons/fa';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useNavigate } from 'react-router-dom';
 import { useReservationContext } from '../../context/ReservationContext';
-
+import { downloadInvoice } from './ReservationApi';
+import { toast } from 'react-toastify';
 const Reservation = () => {
   const navigate = useNavigate();
   const { 
@@ -12,8 +13,63 @@ const Reservation = () => {
     loading, 
     error, 
     fetchReservations,
-    deleteReservation 
+    deleteReservation,
+    generateBill 
   } = useReservationContext();
+  
+  const [loadingInvoice, setLoadingInvoice] = useState(null);
+
+  const handleGenerateInvoice = async (reservationId) => {
+    const toastId = toast.loading('Generating invoice...');
+    setLoadingInvoice(reservationId);
+    
+    try {
+      await downloadInvoice(reservationId);
+      toast.update(toastId, {
+        render: 'Invoice downloaded successfully!',
+        type: 'success',
+        isLoading: false,
+        autoClose: 3000
+      });
+    } catch (error) {
+      toast.update(toastId, {
+        render: 'Failed to generate invoice',
+        type: 'error',
+        isLoading: false,
+        autoClose: 3000
+      });
+      console.error('Invoice generation error:', error);
+    } finally {
+      setLoadingInvoice(null);
+    }
+  };
+  const [generatingBill, setGeneratingBill] = useState(null);
+
+const handleGenerateBill = async (reservationId) => {
+  console.log("Clicked")
+  const toastId = toast.loading('Generating bill...');
+  setGeneratingBill(reservationId);
+  
+  try {
+    await generateBill(reservationId);
+    toast.update(toastId, {
+      render: 'Bill generated successfully!',
+      type: 'success',
+      isLoading: false,
+      autoClose: 3000
+    });
+  } catch (error) {
+    toast.update(toastId, {
+      render: 'Failed to generate bill',
+      type: 'error',
+      isLoading: false,
+      autoClose: 3000
+    });
+    console.error('Bill generation error:', error);
+  } finally {
+    setGeneratingBill(null);
+  }
+};
 
   // Initialize with current month range
   const currentDate = new Date();
@@ -315,20 +371,47 @@ const handleSearch = async () => {
               {reservation.status || 'Confirmed'}
             </span>
           </td>
-          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-            <button 
-              onClick={() => handleEdit(reservation.id)} 
-              className="text-indigo-600 hover:text-indigo-900 mr-2"
-            >
-              <FaEdit />
-            </button>
-            <button 
-              onClick={() => handleDelete(reservation.id)} 
-              className="text-red-600 hover:text-red-900"
-            >
-              <FaTrash />
-            </button>
-          </td>
+          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+  <button 
+    onClick={() => handleEdit(reservation.id)} 
+    title="Edit"
+    className="text-indigo-600 hover:text-indigo-900"
+  >
+    <FaEdit />
+  </button>
+  <button 
+    onClick={() => handleDelete(reservation.id)} 
+    title="Delete"
+    className="text-red-600 hover:text-red-900"
+  >
+    <FaTrash />
+  </button>
+<button 
+                  onClick={() => handleGenerateInvoice(reservation.id)} 
+                  title="Download Invoice"
+                  className="text-green-600 hover:text-green-800"
+                  disabled={loadingInvoice === reservation.id}
+                >
+                  {loadingInvoice === reservation.id ? (
+                    <span className="animate-pulse">...</span>
+                  ) : (
+                    <FaFileInvoice />
+                  )}
+  </button>
+  <button 
+    onClick={() => handleGenerateBill(reservation.id)} 
+    title="Generate Bill"
+    className="text-purple-600 hover:text-purple-800"
+    disabled={generatingBill === reservation.id}
+  >
+    {generatingBill === reservation.id ? (
+      <span className="animate-pulse">...</span>
+    ) : (
+      '💰' // Or use a dollar icon from react-icons if preferred
+    )}
+  </button>
+</td>
+
         </tr>
       );
     })
