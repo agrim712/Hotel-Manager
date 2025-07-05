@@ -13,7 +13,7 @@ const Reservation = () => {
     loading,
     error,
     fetchReservations,
-    deleteReservation 
+    deleteReservation
   } = useReservationContext();
   
   const [loadingInvoice, setLoadingInvoice] = useState(null);
@@ -153,7 +153,7 @@ const handleGenerateBill = async (reservationId) => {
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-200 p-6">
       <div className="bg-white/40 backdrop-blur-md shadow-lg rounded-xl p-6 mb-6">
         <div className="flex justify-between items-center mb-4">
-        <h1 class="text-4xl font-extrabold mb-8 text-center text-indigo-800 drop-shadow-lg uppercase tracking-wider border-b-4 border-indigo-300 pb-2">Reservation Dashboard</h1>
+        <h1 className="text-4xl font-extrabold mb-8 text-center text-indigo-800 drop-shadow-lg uppercase tracking-wider border-b-4 border-indigo-300 pb-2">Reservation Dashboard</h1>
           <div className="flex flex-wrap gap-2">
             <ActionButton icon={<FaPlus />} text="Create" onClick={() => handleCreateReservation()} variant="primary" />
             <ActionButton icon={<FaPlus />} text="Complimentary" onClick={() => handleCreateReservation('complimentary')} variant="secondary" />
@@ -238,98 +238,68 @@ const handleGenerateBill = async (reservationId) => {
         )}
       </div>
 
-      {/* Status Indicators */}
-      {loading && (
-        <div className="mb-4 p-4 bg-blue-50 text-blue-800 rounded-lg">
-          Loading reservations...
-        </div>
-      )}
-      {error && (
-        <div className="mb-4 p-4 bg-red-50 text-red-800 rounded-lg">
-          Error: {error}
-        </div>
-      )}
-
-      {/* Reservations Table */}
-      <div className="overflow-x-auto bg-white rounded-lg shadow">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Booking ID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Booked On</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-In</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-In Time</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-Out</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-Out Time</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Guests</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rooms</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-  {reservations.length === 0 && !loading ? (
-    <tr>
-      <td colSpan="12" className="px-6 py-4 text-center text-gray-500">
-        No reservations found
-      </td>
-    </tr>
-  ) : (
-    reservations.map(reservation => {
-      const checkInDate = new Date(reservation.checkIn);
-      const checkOutDate = new Date(reservation.checkOut);
-      
-      return (
-        <tr key={reservation.id}>
-          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{reservation.id}</td>
-          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{reservation.guestName}</td>
-          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-            {formatDisplayDate(new Date(reservation.createdAt))}
-          </td>
-          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-            {formatDisplayDate(checkInDate)}
-          </td>
-          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-            {formatDisplayTime(checkInDate)}
-          </td>
-          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-            {formatDisplayDate(checkOutDate)}
-          </td>
-          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-            {formatDisplayTime(checkOutDate)}
-          </td>
-          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{reservation.guests}</td>
-          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{reservation.rooms}</td>
-          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-            {reservation.totalAmount?.toFixed(2) || 'N/A'}
-          </td>
-          <td className="px-6 py-4 whitespace-nowrap">
-            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusStyle(reservation.status || 'Confirmed')}`}>
-              {reservation.status || 'Confirmed'}
-            </span>
-          </td>
-          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-            <button 
-              onClick={() => handleEdit(reservation.id)} 
-              className="text-indigo-600 hover:text-indigo-900 mr-2"
-            >
-              <FaEdit />
-            </button>
-            <button 
-              onClick={() => handleDelete(reservation.id)} 
-              className="text-red-600 hover:text-red-900"
-            >
-              <FaTrash />
-            </button>
-          </td>
-        </tr>
-      );
-    })
-  )}
-</tbody>
-        </table>
+      <div className="bg-white/50 backdrop-blur-md shadow-lg rounded-xl overflow-hidden">
+        {loading ? (
+          <div className="p-6 text-blue-700">Loading reservations...</div>
+        ) : error ? (
+          <div className="p-6 text-red-700">Error: {error}</div>
+        ) : reservations.length === 0 ? (
+          <div className="p-6 text-center text-gray-500">No reservations found</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
+              <thead className="bg-indigo-100 text-indigo-800 uppercase text-xs font-semibold">
+                <tr>
+                  <th className="px-6 py-3 text-left">Booking ID</th>
+                  <th className="px-6 py-3 text-left">Customer</th>
+                  <th className="px-6 py-3 text-left">Booked On</th>
+                  <th className="px-6 py-3 text-left">Check-In</th>
+                  <th className="px-6 py-3 text-left">Check-In Time</th>
+                  <th className="px-6 py-3 text-left">Check-Out</th>
+                  <th className="px-6 py-3 text-left">Check-Out Time</th>
+                  <th className="px-6 py-3 text-left">Guests</th>
+                  <th className="px-6 py-3 text-left">Rooms</th>
+                  <th className="px-6 py-3 text-left">Amount</th>
+                  <th className="px-6 py-3 text-left">Status</th>
+                  <th className="px-6 py-3 text-left">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {reservations.map((reservation) => {
+                  const checkInDate = new Date(reservation.checkIn);
+                  const checkOutDate = new Date(reservation.checkOut);
+                  return (
+                    <tr key={reservation.id}>
+                      <td className="px-6 py-3">{reservation.id}</td>
+                      <td className="px-6 py-3">{reservation.guestName}</td>
+                      <td className="px-6 py-3">{formatDisplayDate(new Date(reservation.createdAt))}</td>
+                      <td className="px-6 py-3">{formatDisplayDate(checkInDate)}</td>
+                      <td className="px-6 py-3">{formatDisplayTime(checkInDate)}</td>
+                      <td className="px-6 py-3">{formatDisplayDate(checkOutDate)}</td>
+                      <td className="px-6 py-3">{formatDisplayTime(checkOutDate)}</td>
+                      <td className="px-6 py-3">{reservation.guests}</td>
+                      <td className="px-6 py-3">{reservation.rooms}</td>
+                      <td className="px-6 py-3">{reservation.totalAmount?.toFixed(2) || 'N/A'}</td>
+                      <td className="px-6 py-3">
+                        <span className={`px-2 py-1 text-xs rounded-full ${getStatusStyle(reservation.status || 'Confirmed')}`}>
+                          {reservation.status || 'Confirmed'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-3 space-x-2">
+                        <button onClick={() => handleEdit(reservation.id)} className="text-indigo-600 hover:text-indigo-800">
+                          <FaEdit />
+                        </button>
+                        <button onClick={() => handleDelete(reservation.id)} className="text-red-600 hover:text-red-800">
+                          <FaTrash />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
