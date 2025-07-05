@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { motion } from "framer-motion";
-import { useProductContext } from "../context/ProductAccessContext"; // ✅ Add this
+import { useProductContext } from "../context/ProductAccessContext";
+import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
   const [role, setRole] = useState("SUPERADMIN");
@@ -12,7 +13,9 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const navigate = useNavigate();
-  const { setProducts } = useProductContext(); // ✅ Get context updater
+
+  const { setProducts } = useProductContext();
+  const { setIsLoggedIn, setUserRole } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -36,9 +39,12 @@ const Login = () => {
       localStorage.setItem("token", token);
       localStorage.setItem("userRole", userRole);
 
+      setIsLoggedIn(true);
+      setUserRole(userRole);
+
       if (userRole === "HOTELADMIN") {
         localStorage.setItem("products", JSON.stringify(products));
-        setProducts(products); // ✅ Immediate context update
+        setProducts(products);
       }
 
       const redirectPath =
@@ -52,12 +58,17 @@ const Login = () => {
     } catch (err) {
       console.error("Login failed:", err);
       setError(err.response?.data?.error || err.message || "Login failed");
+
       localStorage.removeItem("token");
       localStorage.removeItem("userRole");
       localStorage.removeItem("products");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handlePrivacyPolicyView = () => {
+    window.open("/Asyncotel-Privacy-Policy.pdf", "_blank");
   };
 
   return (
@@ -168,9 +179,7 @@ const Login = () => {
                     Authenticating...
                   </span>
                 ) : (
-                  <motion.span
-                    animate={isHovered ? { scale: 1.05 } : { scale: 1 }}
-                  >
+                  <motion.span animate={isHovered ? { scale: 1.05 } : { scale: 1 }}>
                     Login
                   </motion.span>
                 )}
@@ -181,13 +190,16 @@ const Login = () => {
           <motion.div className="mt-6 text-center text-gray-500 text-sm">
             <p>
               By continuing, you agree to Asyncotel's{" "}
-              <a href="#" className="text-blue-500 hover:text-blue-700">
+              <span className="text-blue-500 hover:text-blue-700 cursor-pointer">
                 Terms of Service
-              </a>{" "}
+              </span>{" "}
               and{" "}
-              <a href="#" className="text-blue-500 hover:text-blue-700">
+              <span
+                className="text-blue-500 hover:text-blue-700 cursor-pointer"
+                onClick={handlePrivacyPolicyView}
+              >
                 Privacy Policy
-              </a>
+              </span>
               .
             </p>
           </motion.div>

@@ -2,6 +2,8 @@ import jwt from 'jsonwebtoken';
 
 export const auth = (req, res, next) => {
   // Get token from header
+  console.log('Authorization header:', req.header('Authorization'));
+
   const authHeader = req.header('Authorization');
   
   // Check if token exists

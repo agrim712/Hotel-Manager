@@ -20,8 +20,25 @@ export const ReservationProvider = ({ children }) => {
     try {
       setLoading(true);
       setError(null);
+<<<<<<< Updated upstream
       
       const response = await api.get('http://localhost:5000/api/hotel/getreservations', { params });
+=======
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
+      const response = await axios.get('http://localhost:5000/api/hotel/getreservations', {
+        params,
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        withCredentials: true // ✅ important if backend uses cookies or expects it
+      });
+
+>>>>>>> Stashed changes
       setReservations(response.data.data);
       return response.data.data;
     } catch (err) {
@@ -36,7 +53,19 @@ export const ReservationProvider = ({ children }) => {
 
   const deleteReservation = async (bookingId) => {
     try {
+<<<<<<< Updated upstream
       await api.delete(`http://localhost:5000/api/hotel/reservation/delete/${bookingId}`);
+=======
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('Authentication token not found');
+
+      await axios.delete(`http://localhost:5000/api/hotel/reservations/${bookingId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        withCredentials: true
+      });
+>>>>>>> Stashed changes
       setReservations(prev => prev.filter(r => r.id !== bookingId));
     } catch (err) {
       console.error('Error deleting reservation:', err);
@@ -120,7 +149,6 @@ const generateBill = async (reservationId) => {
   };
 
   useEffect(() => {
-    // Initial fetch with default parameters
     fetchReservations();
   }, []);
 

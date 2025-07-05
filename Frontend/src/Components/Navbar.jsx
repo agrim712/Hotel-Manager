@@ -1,64 +1,74 @@
 import React, { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { useProductContext } from "../context/ProductAccessContext";
-import {
-  FaUserCircle,
-  FaCog,
-  FaConciergeBell,
-  FaMoneyBillWave,
-  FaQuestionCircle,
-  FaChevronDown,
-  FaHotel,
-} from "react-icons/fa";
+import { FaHotel, FaUserCircle } from "react-icons/fa";
+import { useAuth } from "../context/AuthContext";
+import axios from "axios";
+import { saveAs } from "file-saver";
 
 const navVariants = {
   initial: { y: -80, opacity: 0 },
   animate: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } },
 };
 
-const dropdownVariants = {
-  initial: { opacity: 0, y: -10, scale: 0.95 },
-  animate: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.2 } },
-  exit: { opacity: 0, y: -10, scale: 0.95, transition: { duration: 0.15 } },
-};
-
-const allProducts = [
-  "PMS",
-  "Bar & Beverage Management",
-  "Spa & Wellness Management",
-  "Restaurant & Dining Management",
-];
-
-const Navbar = ({ isLoggedIn, hotelName, onLogout }) => {
+const Navbar = () => {
+  const { isLoggedIn, userRole, hotel, logout, setHotel } = useAuth();
   const location = useLocation();
-  const { products } = useProductContext();
-  const [loggedIn, setLoggedIn] = useState(isLoggedIn || false);
+  const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
-  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [upgrades, setUpgrades] = useState([]);
 
-  const normalizedProducts = products.map((p) => p.toLowerCase());
+  const showOnlyLogout =
+    location.pathname === "/superadmin-dashboard" ||
+    location.pathname === "/hoteladmin-dashboard";
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    setLoggedIn(!!token);
-  }, [location]);
+    if (!token || !isLoggedIn) return;
 
-  useEffect(() => {
-    setLoggedIn(isLoggedIn || false);
-  }, [isLoggedIn]);
+    if (!hotel) {
+      axios
+        .get("/api/hotel/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        .then((res) => {
+          setHotel(res.data.hotel);
+        })
+        .catch((err) => {
+          console.error("Failed to fetch hotel info", err);
+        });
+    }
 
-  const unpurchasedProducts = allProducts.filter(
-    (p) => !normalizedProducts.includes(p.toLowerCase())
-  );
+    axios
+      .get("/api/hotel/available-upgrades", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => {
+        setUpgrades(res.data.upgrades || []);
+      })
+      .catch((err) => {
+        console.error("Error fetching upgrades", err);
+      });
+  }, [isLoggedIn, location.pathname]);
 
-  const displayHotelName =
-    hotelName?.charAt(0).toUpperCase() + hotelName?.slice(1) || "Hotel Profile";
+  const toggleDropdown = () => setShowDropdown((prev) => !prev);
 
-  const managementFeatures = [
-    { name: "Revenue", icon: FaMoneyBillWave, to: "/revenue" },
-    { name: "Services", icon: FaConciergeBell, to: "/services" },
-  ];
+  const handlePolicyDownload = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get("/api/hotel/hotel-policy", {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: "blob",
+      });
+
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const hotelName = hotel?.name?.replace(/\s+/g, "_") || "HotelPolicy";
+      saveAs(blob, `HotelPolicy-${hotelName}.pdf`);
+    } catch (err) {
+      console.error("Download failed", err);
+      alert("Failed to download hotel policy.");
+    }
+  };
 
   return (
     <motion.nav
@@ -67,7 +77,6 @@ const Navbar = ({ isLoggedIn, hotelName, onLogout }) => {
       animate="animate"
       className="z-50 flex justify-between items-center bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 w-full h-20 px-6 md:px-10 text-white shadow-2xl sticky top-0 border-b border-white/10"
     >
-      {/* Brand */}
       <Link to="/" className="flex items-center space-x-2 group">
         <div className="relative">
           <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-lg blur opacity-30 group-hover:opacity-50 transition-opacity"></div>
@@ -83,145 +92,124 @@ const Navbar = ({ isLoggedIn, hotelName, onLogout }) => {
         </span>
       </Link>
 
-      {loggedIn ? (
-        <div className="flex items-center space-x-4 relative">
-          {/* Profile Dropdown */}
-          <div
-            className="relative"
-            onMouseEnter={() => setShowProfileDropdown(true)}
-            onMouseLeave={() => setShowProfileDropdown(false)}
-          >
-            <button className="flex items-center bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-full font-medium gap-2 hover:from-blue-500 hover:to-indigo-500 transition-all duration-300 shadow-lg border border-white/20">
-              <FaUserCircle className="text-lg" />
-              <span className="hidden md:inline">{displayHotelName}</span>
-              <FaChevronDown
-                className={`text-xs transition-transform duration-200 ${
-                  showProfileDropdown ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-
-            <AnimatePresence>
-              {showProfileDropdown && (
-                <motion.div
-                  variants={dropdownVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  className="absolute right-0 mt-2 bg-white text-gray-800 shadow-2xl rounded-xl p-4 min-w-[260px] z-50 border border-gray-200"
-                >
-                  <div className="border-b border-gray-200 pb-3 mb-3">
-                    <p className="font-bold text-lg text-gray-900">{displayHotelName}</p>
-                    <p className="text-sm text-gray-600">Channel Manager Dashboard</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    {managementFeatures.map((feature) => (
-                      <Link
-                        key={feature.name}
-                        to={feature.to}
-                        className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-lg transition-colors group"
-                      >
-                        <feature.icon className="text-blue-600" />
-                        <span className="font-medium group-hover:text-blue-600">{feature.name}</span>
-                      </Link>
-                    ))}
-
-                    <hr className="my-2" />
-
-                    <Link
-                      to="/settings"
-                      className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-lg transition-colors group"
-                    >
-                      <FaCog className="text-gray-600" />
-                      <span className="font-medium group-hover:text-gray-800">Settings</span>
-                    </Link>
-
-                    <Link
-                      to="/help"
-                      className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-lg transition-colors group"
-                    >
-                      <FaQuestionCircle className="text-gray-600" />
-                      <span className="font-medium group-hover:text-gray-800">Help & Support</span>
-                    </Link>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-             {/* Create Reservation Button */}
-<Link
-  to="/pmss/reservation/create/regular"
-  className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white px-4 py-2 rounded-full font-semibold transition-all duration-300 shadow-lg border border-white/20"
->
-  + Create Reservation
-</Link>
-
-          {/* Upgrade Features */}
-          <div
-            className="relative"
-            onMouseEnter={() => setShowDropdown(true)}
-            onMouseLeave={() => setShowDropdown(false)}
-          >
-            <button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 px-4 py-2 rounded-full font-semibold transition-all duration-300 shadow-lg border border-white/20">
-              Upgrade Features
-            </button>
-
-            <AnimatePresence>
-              {showDropdown && unpurchasedProducts.length > 0 && (
-                <motion.div
-                  variants={dropdownVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  className="absolute right-0 mt-2 bg-white text-gray-800 shadow-2xl rounded-xl p-4 min-w-[260px] z-50 border border-gray-200"
-                >
-                  <p className="font-bold mb-3 text-gray-900">Available Upgrades:</p>
-                  <ul className="space-y-2">
-                    {unpurchasedProducts.map((feature) => (
-                      <li
-                        key={feature}
-                        className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors"
-                      >
-                        <span className="text-gray-700 font-medium">{feature}</span>
-                        <button className="bg-gradient-to-r from-green-500 to-green-600 text-white px-3 py-1 rounded-full text-xs font-semibold hover:from-green-600 hover:to-green-700 transition-all">
-                          Add
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="mt-4 pt-3 border-t border-gray-200">
-                    <Link
-                      to="/pricing"
-                      className="block text-center bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-2 rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all"
-                    >
-                      View All Plans
-                    </Link>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Logout */}
+      {isLoggedIn ? (
+        showOnlyLogout ? (
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={onLogout}
+            onClick={logout}
             className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-full font-semibold hover:from-red-600 hover:to-red-700 shadow-lg transition-all duration-300 border border-white/20"
           >
             Logout
           </motion.button>
-        </div>
+        ) : (
+          <div className="flex items-center gap-4 relative">
+            {upgrades.length > 0 && (
+              <div className="relative group">
+                <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 rounded-full font-semibold shadow-lg border border-white/20 cursor-pointer">
+                  Available Upgrades
+                </div>
+                <div className="absolute right-0 mt-2 hidden group-hover:block bg-white text-black rounded-lg shadow-lg border border-gray-200 z-50 w-64 max-h-48 overflow-y-auto">
+                  {upgrades.map((module) => (
+                    <div
+                      key={module}
+                      className="flex justify-between items-center text-sm text-gray-800 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-md m-1"
+                    >
+                      <span>{module}</span>
+                      <button
+                        className="text-xs text-green-600 hover:underline"
+                        onClick={() => alert(`Buy ${module} clicked`)}
+                      >
+                        Buy →
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="relative">
+              <button onClick={toggleDropdown} className="focus:outline-none">
+                <FaUserCircle className="text-3xl hover:text-cyan-300 transition" />
+              </button>
+
+              <AnimatePresence>
+                {showDropdown && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute right-0 mt-2 w-72 bg-white text-black rounded-lg shadow-lg border border-gray-200 z-50"
+                  >
+                    <div className="p-4 border-b border-gray-200">
+                      <p className="font-semibold text-lg">
+                        {hotel ? hotel.name || "Unnamed Hotel" : "Loading..."}
+                      </p>
+                      {hotel?.contactPerson && (
+                        <p className="text-sm text-gray-600">
+                          <strong>Contact:</strong> {hotel.contactPerson}
+                        </p>
+                      )}
+                      {hotel?.email && (
+                        <p className="text-sm text-gray-600">
+                          <strong>Email:</strong> {hotel.email}
+                        </p>
+                      )}
+                      {(hotel?.city || hotel?.country) && (
+                        <p className="text-sm text-gray-600">
+                          <strong>Location:</strong> {hotel.city || ""}
+                          {hotel.city && hotel.country ? ", " : ""}
+                          {hotel.country || ""}
+                        </p>
+                      )}
+                      {hotel?.products && Array.isArray(hotel.products) && (
+                        <>
+                          <p className="mt-2 font-semibold text-gray-700">Products:</p>
+                          <ul className="text-sm text-gray-600 list-disc list-inside">
+                            {[
+                              "PMS",
+                              "Spa & Wellness Management",
+                              "Bar & Beverage Management",
+                              "Restaurant & Dining Management",
+                            ].map((feature) => (
+                              <li
+                                key={feature}
+                                className={
+                                  hotel.products.includes(feature)
+                                    ? "text-green-600"
+                                    : "text-gray-400 line-through"
+                                }
+                              >
+                                {feature}
+                              </li>
+                            ))}
+                          </ul>
+                        </>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={handlePolicyDownload}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-t border-gray-200"
+                    >
+                      📄 Download Hotel Policies
+                    </button>
+
+                    <button
+                      onClick={logout}
+                      className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 font-medium border-t border-gray-200"
+                    >
+                      Logout
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        )
       ) : (
         <div className="flex items-center gap-6">
-          {[{ name: "HOME", to: "/" },
-            { name: "NEWS", to: "/news" },
-            { name: "PRODUCTS", to: "/products" },
-            { name: "BLOG", to: "/blog" },
-            { name: "PRICING", to: "/pricing" },
-            { name: "CONTACT", to: "/contact" },
-          ].map((link) => (
+          {[{ name: "HOME", to: "/" }, { name: "CONTACT", to: "/contact" }].map((link) => (
             <motion.div key={link.name} whileHover={{ scale: 1.05 }}>
               <Link
                 to={link.to}
@@ -232,7 +220,6 @@ const Navbar = ({ isLoggedIn, hotelName, onLogout }) => {
               </Link>
             </motion.div>
           ))}
-
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Link
               to="/login"

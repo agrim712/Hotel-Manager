@@ -8,13 +8,12 @@ import { downloadInvoice } from './ReservationApi';
 import { toast } from 'react-toastify';
 const Reservation = () => {
   const navigate = useNavigate();
-  const { 
-    reservations, 
-    loading, 
-    error, 
+  const {
+    reservations,
+    loading,
+    error,
     fetchReservations,
-    deleteReservation,
-    generateBill 
+    deleteReservation 
   } = useReservationContext();
   
   const [loadingInvoice, setLoadingInvoice] = useState(null);
@@ -71,7 +70,6 @@ const handleGenerateBill = async (reservationId) => {
   }
 };
 
-  // Initialize with current month range
   const currentDate = new Date();
   const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
   const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
@@ -86,16 +84,12 @@ const handleGenerateBill = async (reservationId) => {
     searchText: ''
   });
 
-  // Format date for display
-  const formatDisplayDate = (date) => {
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
+  const formatDisplayDate = (date) =>
+    date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
-  // Style function for status badges
+  const formatDisplayTime = (date) =>
+    date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
   const getStatusStyle = (status) => {
     switch (status) {
       case 'Checked in': return 'bg-green-100 text-green-800';
@@ -104,27 +98,18 @@ const handleGenerateBill = async (reservationId) => {
       default: return 'bg-gray-100 text-gray-800';
     }
   };
-  const formatDisplayTime = (date) => {
-  return date.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true
-  });
-};
 
-  // Action button component
   const ActionButton = ({ icon, text, onClick, variant = 'default' }) => {
     const variants = {
       default: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50',
       primary: 'bg-blue-500 text-white hover:bg-blue-600',
       secondary: 'bg-green-500 text-white hover:bg-green-600',
-      danger: 'bg-red-500 text-white hover:bg-red-600',
+      danger: 'bg-red-500 text-white hover:bg-red-600'
     };
-
     return (
       <button
         onClick={onClick}
-        className={`flex items-center px-4 py-2 rounded-md text-sm font-medium ${variants[variant]}`}
+        className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition ${variants[variant]}`}
       >
         {icon && <span className="mr-2">{icon}</span>}
         {text}
@@ -132,23 +117,20 @@ const handleGenerateBill = async (reservationId) => {
     );
   };
 
-  // Handle search with filters
-const handleSearch = async () => {
-  try {
-    const params = {
-      fromDate: filters.dateRange.from.toISOString(),
-      toDate: filters.dateRange.to.toISOString(),
-      searchText: filters.searchText,
-      filterOption: filters.filterOption // For non-date searches
-    };
-    
-    await fetchReservations(params);
-  } catch (err) {
-    console.error('Search failed:', err);
-  }
-};
+  const handleSearch = async () => {
+    try {
+      const params = {
+        fromDate: filters.dateRange.from.toISOString(),
+        toDate: filters.dateRange.to.toISOString(),
+        searchText: filters.searchText,
+        filterOption: filters.filterOption
+      };
+      await fetchReservations(params);
+    } catch (err) {
+      console.error('Search failed:', err);
+    }
+  };
 
-  // Handle reservation deletion
   const handleDelete = async (bookingId) => {
     if (window.confirm('Are you sure you want to delete this reservation?')) {
       try {
@@ -159,89 +141,72 @@ const handleSearch = async () => {
     }
   };
 
-  // Handle navigation to edit page
   const handleEdit = (bookingId) => {
     navigate(`/pmss/reservation/edit/${bookingId}`);
   };
 
-  // Handle create reservation navigation
   const handleCreateReservation = (type = 'regular') => {
     navigate(`/pmss/reservation/create/${type}`);
   };
 
   return (
-    <div className="p-6">
-      {/* Filter Section */}
-      <div className="bg-white p-4 rounded-lg shadow mb-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-200 p-6">
+      <div className="bg-white/40 backdrop-blur-md shadow-lg rounded-xl p-6 mb-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Reservation Data</h2>
-          <div className="flex space-x-2">
-            <ActionButton
-              icon={<FaPlus />}
-              text="Create Reservation"
-              onClick={() => handleCreateReservation()}
-              variant="primary"
-            />
-            <ActionButton
-              icon={<FaPlus />}
-              text="Complimentary"
-              onClick={() => handleCreateReservation('complimentary')}
-              variant="secondary"
-            />
-            <ActionButton
-              icon={<FaPlus />}
-              text="Out of Order"
-              onClick={() => handleCreateReservation('outoforder')}
-              variant="danger"
-            />
-            <ActionButton
-              icon={<FaPlus />}
-              text="Groups"
-              onClick={() => handleCreateReservation('group')}
-              variant="primary"
-            />
+        <h1 class="text-4xl font-extrabold mb-8 text-center text-indigo-800 drop-shadow-lg uppercase tracking-wider border-b-4 border-indigo-300 pb-2">Reservation Dashboard</h1>
+          <div className="flex flex-wrap gap-2">
+            <ActionButton icon={<FaPlus />} text="Create" onClick={() => handleCreateReservation()} variant="primary" />
+            <ActionButton icon={<FaPlus />} text="Complimentary" onClick={() => handleCreateReservation('complimentary')} variant="secondary" />
+            <ActionButton icon={<FaPlus />} text="Out of Order" onClick={() => handleCreateReservation('outoforder')} variant="danger" />
+            <ActionButton icon={<FaPlus />} text="Groups" onClick={() => handleCreateReservation('group')} variant="primary" />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-<div>
-  <label className="block text-sm font-medium text-gray-700">From Date</label>
-  <DatePicker
-    selected={filters.dateRange.from}
-    onChange={(date) => setFilters(prev => ({
-      ...prev,
-      dateRange: { ...prev.dateRange, from: date }
-    }))}
-    selectsStart
-    startDate={filters.dateRange.from}
-    endDate={filters.dateRange.to}
-    className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-  />
-</div>
-<div>
-  <label className="block text-sm font-medium text-gray-700">To Date</label>
-  <DatePicker
-    selected={filters.dateRange.to}
-    onChange={(date) => setFilters(prev => ({
-      ...prev,
-      dateRange: { ...prev.dateRange, to: date }
-    }))}
-    selectsEnd
-    startDate={filters.dateRange.from}
-    endDate={filters.dateRange.to}
-    minDate={filters.dateRange.from}
-    className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-  />
-</div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Filter Options</label>
+            <label className="block text-sm font-semibold text-gray-700">From Date</label>
+            <DatePicker
+              selected={filters.dateRange.from}
+              onChange={(date) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  dateRange: { ...prev.dateRange, from: date }
+                }))
+              }
+              selectsStart
+              startDate={filters.dateRange.from}
+              endDate={filters.dateRange.to}
+              className="mt-1 w-full rounded-md border-gray-300 shadow-sm p-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700">To Date</label>
+            <DatePicker
+              selected={filters.dateRange.to}
+              onChange={(date) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  dateRange: { ...prev.dateRange, to: date }
+                }))
+              }
+              selectsEnd
+              startDate={filters.dateRange.from}
+              endDate={filters.dateRange.to}
+              minDate={filters.dateRange.from}
+              className="mt-1 w-full rounded-md border-gray-300 shadow-sm p-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700">Filter Option</label>
             <select
               value={filters.filterOption}
-              onChange={(e) => setFilters(prev => ({
-                ...prev,
-                filterOption: e.target.value
-              }))}
-              className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+              onChange={(e) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  filterOption: e.target.value
+                }))
+              }
+              className="mt-1 w-full rounded-md border-gray-300 shadow-sm p-2"
             >
               <option>Booking Date</option>
               <option>Booking ID</option>
@@ -251,52 +216,26 @@ const handleSearch = async () => {
             </select>
           </div>
           <div className="flex items-end">
-            <ActionButton
-              icon={<FaSearch />}
-              text="Search"
-              onClick={handleSearch}
-              variant="primary"
-            />
+            <ActionButton icon={<FaSearch />} text="Search" onClick={handleSearch} variant="primary" />
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center space-x-4">
-            {filters.filterOption !== 'Booking Date' && (
-              <div className="flex items-center">
-                <input
-                  type="text"
-                  placeholder={`Search by ${filters.filterOption}`}
-                  value={filters.searchText}
-                  onChange={(e) => setFilters(prev => ({
-                    ...prev,
-                    searchText: e.target.value
-                  }))}
-                  className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                />
-                <button
-                  onClick={handleSearch}
-                  className="ml-2 px-4 py-2 rounded-md text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300"
-                >
-                  <FaSearch />
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="flex space-x-4">
-            <ActionButton
-              icon={<FaDownload />}
-              text="Download"
-              onClick={() => console.log('Download clicked')}
-            />
-            <ActionButton
-              icon={<FaUpload />}
-              text="Upload"
-              onClick={() => console.log('Upload clicked')}
+        {filters.filterOption !== 'Booking Date' && (
+          <div className="mt-4">
+            <input
+              type="text"
+              placeholder={`Search by ${filters.filterOption}`}
+              value={filters.searchText}
+              onChange={(e) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  searchText: e.target.value
+                }))
+              }
+              className="w-full p-2 border border-gray-300 rounded-md shadow-sm"
             />
           </div>
-        </div>
+        )}
       </div>
 
       {/* Status Indicators */}
@@ -371,47 +310,20 @@ const handleSearch = async () => {
               {reservation.status || 'Confirmed'}
             </span>
           </td>
-          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-  <button 
-    onClick={() => handleEdit(reservation.id)} 
-    title="Edit"
-    className="text-indigo-600 hover:text-indigo-900"
-  >
-    <FaEdit />
-  </button>
-  <button 
-    onClick={() => handleDelete(reservation.id)} 
-    title="Delete"
-    className="text-red-600 hover:text-red-900"
-  >
-    <FaTrash />
-  </button>
-<button 
-                  onClick={() => handleGenerateInvoice(reservation.id)} 
-                  title="Download Invoice"
-                  className="text-green-600 hover:text-green-800"
-                  disabled={loadingInvoice === reservation.id}
-                >
-                  {loadingInvoice === reservation.id ? (
-                    <span className="animate-pulse">...</span>
-                  ) : (
-                    <FaFileInvoice />
-                  )}
-  </button>
-  <button 
-    onClick={() => handleGenerateBill(reservation.id)} 
-    title="Generate Bill"
-    className="text-purple-600 hover:text-purple-800"
-    disabled={generatingBill === reservation.id}
-  >
-    {generatingBill === reservation.id ? (
-      <span className="animate-pulse">...</span>
-    ) : (
-      '💰' // Or use a dollar icon from react-icons if preferred
-    )}
-  </button>
-</td>
-
+          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+            <button 
+              onClick={() => handleEdit(reservation.id)} 
+              className="text-indigo-600 hover:text-indigo-900 mr-2"
+            >
+              <FaEdit />
+            </button>
+            <button 
+              onClick={() => handleDelete(reservation.id)} 
+              className="text-red-600 hover:text-red-900"
+            >
+              <FaTrash />
+            </button>
+          </td>
         </tr>
       );
     })

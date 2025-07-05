@@ -13,6 +13,7 @@ import RestaurantRoutes from './src/routes/RestaurantRoutes.js'
 import Superadmin from "./src/routes/Superadmin.js"
 import cron from 'node-cron';
 import { updateRoomUnitStatus } from './src/controllers/Reservation/changeStatus.js';
+
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
@@ -36,7 +37,7 @@ app.use(cors({
 app.use(express.json());
 import path from 'path';
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
-
+app.use("/api/hotel", hotelRoutes);
 
 // WebSocket connection handling
 io.on('connection', (socket) => {
