@@ -10,7 +10,7 @@ export const ReservationProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   const token = localStorage.getItem('token');
-
+  console.log(token);
   const api = axios.create({
     baseURL: 'http://localhost:5000/api/hotel',
     headers: {

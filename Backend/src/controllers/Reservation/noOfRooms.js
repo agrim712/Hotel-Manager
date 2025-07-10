@@ -17,26 +17,27 @@ export const getRoomCount = async (req, res) => {
 
   try {
     const matchingRoom = await prisma.room.findFirst({
-      where: {
-        hotelId,
-        name: roomType,
-        rateType,
-      },
+  where: {
+    hotelId,
+    name: roomType,
+    rateType,
+  },
+  select: {
+    id: true,
+    RoomUnit: {
       select: {
         id: true,
-        roomUnits: {
-          select: {
-            id: true,
-          },
-        },
       },
-    });
+    },
+  },
+});
+
 
     if (!matchingRoom) {
       return res.status(404).json({ error: "No matching room found." });
     }
+const roomUnitIds = matchingRoom.RoomUnit.map((ru) => ru.id);
 
-    const roomUnitIds = matchingRoom.roomUnits.map((ru) => ru.id);
 
     // Fetch reservations that overlap with the given checkIn and checkOut
     const conflictingReservations = await prisma.reservation.findMany({

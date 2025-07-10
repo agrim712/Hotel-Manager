@@ -7,63 +7,118 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  role      Role
-  hotel     Hotel?   @relation(fields: [hotelId], references: [id])
-  hotelId   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
 model Hotel {
-  id             String        @id @default(cuid())
-  name           String
-  address        String        @unique
-  country        String?
-  city           String?
-  contactPerson  String?
-  phoneCode      String?
-  phoneNumber    String?
+  id                 String  @id @default(cuid())
+  // Basic Information
+  name               String
+  brandAffiliation   String?
+  category           String  @default("3-Star")
+  registeredAddress  String
+  operationalAddress String?
+
+  // Location Information
+  country           Json? // { value: string, label: string }
+  state             String?
+  city              Json? // { value: string, label: string }
+  pinCode           String
+  timeZone          Json? // { value: string, label: string }
+  preferredLanguage Json? // { value: string, label: string }
+
+  // Amenities
+  amenities Json? // Array<{ value: string, label: string }>
+
+  // Contact Information
+  contactPerson  String
+  phoneCode      Json? // { value: string, label: string }
+  phoneNumber    String
   whatsappNumber String?
-  totalRooms     Int?
-  email          String?
-  propertyType   String?
-  currency       String?
-  products       String[]
-  rooms          Room[]
-  users          User[]
-  reservations   Reservation[]
-  isPaymentDone  Boolean       @default(false)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  email          String
+  website        String?
+  googleMapsLink String?
+
+  // Property Details
+  totalRooms   Int
+  propertyType String?
+  currency     Json? // { value: string, label: string }
+
+  // Government & Tax Details
+  panNumber           String
+  gstin               String?
+  fssaiLicense        String?
+  fireSafetyCert      String?
+  tradeLicense        String?
+  alcoholLicense      String?
+  tourismRegistration String?
+  companyRegistration String?
+
+  // Operations
+  checkInTime        String
+  checkOutTime       String
+  earlyCheckInPolicy String?
+  lateCheckOutPolicy String?
+  cancellationPolicy String
+  noShowPolicy       String?
+
+  // Accounting
+  invoiceFormat String?
+  paymentModes  Json? // string[]
+
+  // OTA
+  otas           Json? // string[]
+  channelManager String?
+  bookingEngine  String?
+
+  // Products
+  products Json? // Array<{ value: string, label: string }>
+
+  // Documents
+  logoPath            String?
+  panCardPath         String?
+  gstCertPath         String?
+  tradeLicensePath    String?
+  fireSafetyCertPath  String?
+  fssaiLicensePath    String?
+  cancelledChequePath String?
+  idProofPath         String?
+  propertyImages      Json? // Array<{ path: string, url: string }>
+
+  // Relations
+  bankAccounts  BankAccount[]
+  rooms         Room[]
+  users         User[]
+  isPaymentDone Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  Reservation   Reservation[]
+  RoomUnit      RoomUnit[]
+  RatePlan      RatePlan[]
+    expenses          Expense[]
+  expenseCategories ExpenseCategory[]
 }
 
-model Room {
-  id             String     @id @default(cuid())
-  name           String
-  numOfRooms     Int
-  maxGuests      Int
-  rateType       String
-  rate           Float
-  extraAdultRate Float?
-  roomNumbers    String[]
-  hotelId        String
-  hotel          Hotel      @relation(fields: [hotelId], references: [id])
-  roomUnits      RoomUnit[]
-  reservations   Reservation[] @relation("RoomToReservation")
+model BankAccount {
+  id                String   @id @default(cuid())
+  accountHolderName String
+  bankName          String
+  accountNumber     String
+  ifscCode          String
+  accountType       String
+  branch            String
+  hotelId           String
+  hotel             Hotel    @relation(fields: [hotelId], references: [id])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model RoomUnit {
   id           String        @id @default(cuid())
   roomNumber   String
   status       RoomStatus    @default(AVAILABLE)
-  notes        String?
-  floor        Int?
+  floor        String?
   roomId       String
   room         Room          @relation(fields: [roomId], references: [id])
+  hotel        Hotel         @relation(fields: [hotelId], references: [id])
+  hotelId      String
   reservations Reservation[]
 }
 
@@ -107,6 +162,126 @@ model Reservation {
   connectedRooms  Room[]    @relation("RoomToReservation")
   createdAt       DateTime  @default(now())
   isMaintenance   Boolean   @default(false)
+  Room            Room[]
+}
+
+model Room {
+  id             String        @id @default(cuid())
+  name           String
+  numOfRooms     Int
+  maxGuests      Int
+  rateType       String // { value: string, label: string }
+  rate           Float
+  extraAdultRate Float?
+  roomNumbers    String[] // Array of "floor-roomnumber" strings
+  amenities      Json? // Array<{ value: string, label: string }>
+  smoking        String        @default("non-smoking")
+  extraBedPolicy String?
+  childPolicy    String?
+  roomImages     Json? // Array<{ path: string, url: string }>
+  hotelId        String
+  hotel          Hotel         @relation(fields: [hotelId], references: [id])
+  reservations   Reservation[] @relation("RoomToReservation")
+  Reservation    Reservation?  @relation(fields: [reservationId], references: [id])
+  reservationId  String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  RoomUnit       RoomUnit[]
+  RatePlan       RatePlan[]
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  password  String
+  role      Role
+  hotelId   String?
+  hotel     Hotel?     @relation(fields: [hotelId], references: [id])
+    expensesCreated Expense[] @relation("UserExpenses")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  SavedForm SavedForm?
+}
+
+model RatePlan {
+  id          String         @id @default(cuid())
+  name        String
+  description String?
+  hotelId     String
+  hotel       Hotel          @relation(fields: [hotelId], references: [id])
+  roomTypeId  String?
+  roomType    Room?          @relation(fields: [roomTypeId], references: [id])
+  rateType    String
+  rates       DailyRate[]
+  roomRates   RoomDailyRate[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+model RoomDailyRate {
+  id         String   @id @default(cuid())
+  date       DateTime
+  roomNumber String
+  basePrice  Float
+  minPrice   Float
+  maxPrice   Float
+  ratePlanId String
+  ratePlan   RatePlan @relation(fields: [ratePlanId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([date, roomNumber, ratePlanId])
+}
+model DailyRate {
+  id         String   @id @default(cuid())
+  date       DateTime
+  rate       Float
+  ratePlanId String
+  ratePlan   RatePlan @relation(fields: [ratePlanId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([date, ratePlanId])
+}
+model ExpenseCategory {
+  id        String    @id @default(uuid())
+  name      String
+  hotelId   String
+  hotel     Hotel     @relation(fields: [hotelId], references: [id])
+  expenses  Expense[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([name, hotelId])
+}
+
+model Expense {
+  id          String          @id @default(uuid())
+  date        DateTime
+  amount      Float
+  paymentMode PaymentMode
+  description String?
+  receiptUrl  String?
+  hotelId     String
+  hotel       Hotel           @relation(fields: [hotelId], references: [id])
+  categoryId  String
+  category    ExpenseCategory @relation(fields: [categoryId], references: [id])
+  createdById String?
+  createdBy   User?           @relation("UserExpenses", fields: [createdById], references: [id])
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model SavedForm {
+  id             Int      @id @default(autoincrement())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  formData       Json
+  currentSection String
+  uploadedFiles  Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId])
 }
 
 model R_Category {
@@ -145,4 +320,11 @@ enum RoomStatus {
 enum Role {
   SUPERADMIN
   HOTELADMIN
+}
+enum PaymentMode {
+  CASH
+  CARD
+  UPI
+  BANK
+  OTHER
 }

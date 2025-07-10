@@ -117,8 +117,12 @@ export const createHotelAdmin = async (req, res) => {
       return res.status(400).json({ error: 'Email, password, hotel name, and address are required' });
     }
 
-    validatePassword(hotelPassword);
+    // Password validation
+    if (hotelPassword.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    }
 
+    // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email: hotelEmail }
     });
@@ -127,13 +131,33 @@ export const createHotelAdmin = async (req, res) => {
       return res.status(400).json({ error: 'Email already in use' });
     }
 
+    // Check if hotel with same address already exists
+    const existingHotel = await prisma.hotel.findFirst({
+      where: { registeredAddress: hotelAddress.trim() }
+    });
+
+    if (existingHotel) {
+      return res.status(400).json({ error: "A hotel with this address already exists." });
+    }
+
+    // Create Hotel with required fields
     const hotel = await prisma.hotel.create({
       data: {
         name: hotelName,
-        address: hotelAddress
+        registeredAddress: hotelAddress.trim(),
+        contactPerson: "Not Set",
+        phoneNumber: "0000000000",
+        email: hotelEmail,
+        pinCode: "000000",
+        panNumber: "TEMP-PAN",
+        checkInTime: "12:00",
+        checkOutTime: "10:00",
+        cancellationPolicy: "Standard cancellation policy",
+        totalRooms: 0,
       }
     });
 
+    // Create Hotel Admin User
     const user = await prisma.user.create({
       data: {
         email: hotelEmail,
@@ -143,6 +167,7 @@ export const createHotelAdmin = async (req, res) => {
       }
     });
 
+    // Generate Token
     const token = jwt.sign(
       {
         userId: user.id,
@@ -163,11 +188,6 @@ export const createHotelAdmin = async (req, res) => {
 
   } catch (err) {
     console.error("Error creating hotel admin:", err);
-
-    if (err.code === 'P2002' && err.meta?.target?.includes('address')) {
-      return res.status(400).json({ error: "Hotel with this address already exists." });
-    }
-
     return res.status(500).json({ error: "Internal server error" });
   }
 };

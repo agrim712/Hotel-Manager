@@ -76,40 +76,51 @@ export const getRoomsWithUnits = async (req, res) => {
   const { hotelId } = req.user;
 
   if (!hotelId) {
-    return res.status(400).json({ 
+    return res.status(400).json({
       success: false,
-      error: "Missing hotelId from token." 
+      error: "Missing hotelId from token."
     });
   }
 
   try {
-    const rooms = await prisma.room.findMany({
+    const roomUnits = await prisma.roomUnit.findMany({
       where: { hotelId },
-      include: {
-        roomUnits: {
+      select: {
+        id: true,
+        roomNumber: true,
+        floor: true,
+        status: true,
+        room: {
           select: {
             id: true,
-            roomNumber: true,
-            status: true
+            name: true,
+            rateType: true,
+            rate: true,
+            maxGuests: true,
+            smoking: true,
+            extraBedPolicy: true,
+            childPolicy: true,
+            roomImages: true,
+            amenities: true
           }
         }
       },
       orderBy: {
-        name: 'asc'
+        roomNumber: 'asc'
       }
     });
 
     return res.json({
       success: true,
-      count: rooms.length,
-      rooms
+      count: roomUnits.length,
+      rooms: roomUnits  // <== to match frontend's `fetchedRooms = roomsJson.rooms`
     });
 
   } catch (error) {
-    console.error('Failed to fetch rooms with units:', error);
+    console.error('Failed to fetch room units with room info:', error);
     return res.status(500).json({
       success: false,
-      error: 'Internal server error while fetching rooms.',
+      error: 'Internal server error while fetching room units.',
       details: error.message
     });
   }

@@ -33,6 +33,7 @@ const StayView = () => {
       const resvJson = await reservationsRes.json();
 
       const fetchedRooms = roomsJson?.rooms ||  [];
+      console.log(fetchedRooms);
       const fetchedReservations = resvJson?.data || resvJson?.reservations || [];
 
       setRooms(fetchedRooms);
@@ -131,7 +132,7 @@ const StayView = () => {
         <div className="mb-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
             <div>
-            <h1 class="text-4xl font-extrabold mb-8 text-indigo-800 drop-shadow-lg uppercase tracking-wider border-b-4 border-indigo-300 pb-2">Stay View</h1>
+            <h1 className="text-4xl font-extrabold mb-8 text-indigo-800 drop-shadow-lg uppercase tracking-wider border-b-4 border-indigo-300 pb-2">Stay View</h1>
               <p className="text-gray-500 text-sm">Manage your property availability and reservations</p>
             </div>
             <div className="flex items-center gap-2 flex-wrap">

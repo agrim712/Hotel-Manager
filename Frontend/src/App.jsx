@@ -31,14 +31,26 @@ import SpaManagement from './pages/SPA/Spa_Dashboard';
 import BarManagement from './pages/Bar/Bar_Dashboard';
 import SpaMenuManager from './pages/SPA/Spa_menu_builder';
 import Reports from './pages/PMS/Reports';
+import HomePage from './pages/BookingEngine/Booking';
+import SearchResultsPage from './pages/BookingEngine/SearchResultsPage';
+import RoomDetailPage from './pages/BookingEngine/RoomDetailPage';
+import RateManagement from './pages/PMS/RateManagement';
+import ExpenseManager from './pages/PMS/ExpenseManager';
 import { ProductProvider, useProductContext } from "./context/ProductAccessContext";
+// In your axios configuration file or App.js
+import axios from 'axios';
 
+axios.defaults.baseURL = 'http://localhost:5000';
 const ProductRoutes = () => {
   const { products } = useProductContext();
 
+  const hasProduct = (key) => {
+    return products.some(p => p?.value === key);
+  };
+
   return (
     <Routes>
-      {products.includes("PMS") && (
+      {hasProduct("PMS") && (
         <>
           <Route path="/pms" element={<PMS />} />
           <Route path="/pmss" element={<Pmss />}>
@@ -47,26 +59,28 @@ const ProductRoutes = () => {
             <Route path="stay-view" element={<StayViewPage />} />
             <Route path="rooms-view" element={<RoomsView />} />
             <Route path="reports" element={<Reports />} />
+             <Route path="expenses" element={<ExpenseManager />} />
           </Route>
           <Route path="/pmss/reservation/create/complimentary" element={<ComplimentaryReservation />} />
           <Route path="/pmss/reservation/create/outoforder" element={<OutOfOrderRoomForm />} />
           <Route path="/pmss/reservation/create/group" element={<GroupReservationForm />} />
           <Route path="/pmss/guests" element={<GuestListHeader />} />
+          <Route path="/pmss/rate-management" element={<RateManagement />} />
         </>
       )}
 
-      {products.includes("Bar & Beverage Management") && (
+      {hasProduct("Bar Management") && (
         <Route path="/pmss/bar-management" element={<BarManagement />} />
       )}
 
-      {products.includes("Spa & Wellness Management") && (
+      {hasProduct("Spa Management") && (
         <>
           <Route path="/pmss/spa-management" element={<SpaManagement />} />
           <Route path="/spa/edit-menu" element={<SpaMenuManager />} />
         </>
       )}
 
-      {products.includes("Restaurant & Dining Management") && (
+      {hasProduct("Restaurant Management") && (
         <>
           <Route path="/pmss/restaurant-management" element={<RestaurantManagement />} />
           <Route path="/restaurant/edit-menu" element={<MenuBuilder />} />
@@ -75,6 +89,7 @@ const ProductRoutes = () => {
     </Routes>
   );
 };
+
 
 const AppRoutes = () => {
   const { loading, isLoggedIn, userRole, logout } = useAuth();
@@ -98,7 +113,10 @@ const AppRoutes = () => {
             <Route path="/contact" element={<Contact />} />
             <Route path="/onboard" element={<Onboard />} />
             <Route path="/login" element={<Login />} />
-
+  <Route path="/booking-engine" element={<HomePage />} />
+  <Route path="/booking-engine/:hotelId" element={<HomePage />} />
+  <Route path="/booking-engine/search" element={<SearchResultsPage />} />
+  <Route path="/booking-engine/room" element={<RoomDetailPage />} />
             <Route
               path="/superadmin-dashboard"
               element={

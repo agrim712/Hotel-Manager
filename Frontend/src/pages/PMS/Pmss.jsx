@@ -10,8 +10,10 @@ import {
   FaFileAlt,
   FaCocktail,
   FaSpa,
+  FaMoneyBillWave,
   FaUtensils,
 } from "react-icons/fa";
+import { useAuth } from "../../context/AuthContext";
 import { useProductContext } from "../../context/ProductAccessContext";
 
 const Pmss = () => {
@@ -19,19 +21,26 @@ const Pmss = () => {
   const location = useLocation();
   const [isPOSOpen, setIsPOSOpen] = useState(false);
   const { products } = useProductContext();
+    const { hotel } = useAuth();
 
-  const normalizedProducts = products.map((p) => p.toLowerCase());
-  const has = (label) => normalizedProducts.includes(label.toLowerCase());
+  // Extract and normalize product labels for case-insensitive access
+  const normalizedLabels = products.map((p) => p.label?.toLowerCase() || "");
+
+  const has = (label) => normalizedLabels.includes(label.toLowerCase());
   const isActive = (path) => location.pathname.includes(path);
 
   useEffect(() => {
-    if (
-      has("Bar & Beverage Management") ||
-      has("Spa & Wellness Management") ||
-      has("Restaurant & Dining Management")
-    ) {
-      setIsPOSOpen(true);
-    }
+    const posModules = [
+      "Bar Management",
+      "Bar & Beverage Management",
+      "Spa & Wellness Management",
+      "Restaurant Management",
+      "Restaurant & Dining Management",
+    ];
+    const posEnabled = posModules.some((module) =>
+      has(module)
+    );
+    setIsPOSOpen(posEnabled);
   }, [products]);
 
   return (
@@ -39,57 +48,32 @@ const Pmss = () => {
       {/* Sidebar */}
       <aside className="w-64 bg-[#1e293b] text-white flex flex-col shadow-md">
         <nav className="flex-1 px-4 py-6 space-y-1 text-sm">
-          {has("PMS") && (
+          {has("Property Management System (PMS)") && (
             <>
-              <SidebarButton
-                icon={<FaChartBar />}
-                label="Dashboard"
-                onClick={() => navigate("/pmss/dashboard")}
-                active={isActive("dashboard")}
-              />
-              <SidebarButton
-                icon={<FaBed />}
+            <SidebarButton icon={<FaChartBar />} label="Dashboard" onClick={() => navigate("/pmss/dashboard")} />
+              <SidebarButton icon={<FaBed />} label="Stay View" onClick={() => navigate("/pmss/stay-view")} />
+              <SidebarButton icon={<FaCalendarAlt />} label="Rooms View" onClick={() => navigate("/pmss/rooms-view")} />
+              <SidebarButton icon={<FaPlus />} label="Reservation" onClick={() => navigate("/pmss/reservation")} />
+              <SidebarButton icon={<FaUsers />} label="Guests" onClick={() => navigate("/pmss/guests")} />
+              <SidebarButton icon={<FaBuilding />} label="Companies" onClick={() => navigate("/pmss/companies")} />
+              <SidebarButton icon={<FaFileAlt />} label="Reports" onClick={() => navigate("/pmss/reports")} />
 
-                
-                label="Stay View"
-                onClick={() => navigate("/pmss/stay-view")}
-                active={isActive("stay-view")}
-              />
-              <SidebarButton
-                icon={<FaCalendarAlt />}
-                label="Rooms View"
-                onClick={() => navigate("/pmss/rooms-view")}
-                active={isActive("rooms-view")}
-              />
-              <SidebarButton
-                icon={<FaPlus />}
-                label="Reservation"
-                onClick={() => navigate("/pmss/reservation")}
-                active={isActive("reservation")}
-              />
-              <SidebarButton
-                icon={<FaUsers />}
-                label="Guests"
-                onClick={() => navigate("/pmss/guests")}
-                active={isActive("guests")}
-              />
-              <SidebarButton
-                icon={<FaBuilding />}
-                label="Companies"
-                onClick={() => navigate("/pmss/companies")}
-                active={isActive("companies")}
-              />
-              <SidebarButton
-                icon={<FaFileAlt />}
-                label="Reports"
-                onClick={() => navigate("/pmss/reports")}
-                active={isActive("reports")}
-              />
+              <SidebarButton icon={<FaMoneyBillWave />} label="Expenses" onClick={() => navigate("/pmss/expenses")} />
+                  {/* Booking Engine Tab */}
+                <SidebarButton
+  icon={<FaCalendarAlt />}
+  label="Booking Engine"
+  onClick={() => navigate(`/booking-engine/${hotel?.id || ''}`)}
+  active={isActive("booking-engine")}
+/>
+
             </>
           )}
 
-          {(has("Bar & Beverage Management") ||
+          {(has("Bar Management") ||
+            has("Bar & Beverage Management") ||
             has("Spa & Wellness Management") ||
+            has("Restaurant Management") ||
             has("Restaurant & Dining Management")) && (
             <div className="mt-4">
               <button
@@ -102,7 +86,7 @@ const Pmss = () => {
 
               {isPOSOpen && (
                 <div className="ml-6 mt-2 space-y-1">
-                  {has("Bar & Beverage Management") && (
+                  {(has("Bar Management") || has("Bar & Beverage Management")) && (
                     <SidebarSubButton
                       icon={<FaCocktail />}
                       label="Bar Management"
@@ -118,7 +102,7 @@ const Pmss = () => {
                       active={isActive("spa-management")}
                     />
                   )}
-                  {has("Restaurant & Dining Management") && (
+                  {(has("Restaurant Management") || has("Restaurant & Dining Management")) && (
                     <SidebarSubButton
                       icon={<FaUtensils />}
                       label="Restaurant Management"

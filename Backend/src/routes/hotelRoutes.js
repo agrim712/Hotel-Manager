@@ -19,7 +19,12 @@ import { getRoomCounts } from "../controllers/roomCountController.js";
 import { getAllRoomUnits } from "../controllers/roomUnit.js";
 import { updateRoomUnitStatus } from "../controllers/UpdateStatus.js";
 import { downloadHotelPolicy } from '../controllers/hotelContoller.js';
-
+import { getSavedForm, saveForm } from "../controllers/formController.js";
+import { 
+  generateRateTemplate, 
+  uploadRates, 
+  getRates 
+} from "../controllers/rateController.js";
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -41,7 +46,36 @@ const upload = multer({ storage });
 router.use('/photos', express.static(uploadDir));
 
 /* ======================= Hotel Routes ======================= */
-router.post('/onboard', auth, authorizeRoles('HOTELADMIN'), createHotel);
+router.post('/onboard', auth, authorizeRoles('HOTELADMIN'), upload.any(),createHotel);
+// In your router
+router.post('/upload-room-images', auth, authorizeRoles('HOTELADMIN'), upload.array('images', 10), async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ success: false, message: 'No files uploaded' });
+    }
+
+    const imageData = req.files.map(file => ({
+      filename: file.filename,
+      path: file.path,
+      url: `${req.protocol}://${req.get('host')}/uploads/photos/${file.filename}`
+    }));
+
+    res.json({ 
+      success: true, 
+      images: imageData
+    });
+  } catch (error) {
+    console.error('Error uploading images:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to upload images',
+      error: error.message
+    });
+  }
+});
+
+router.post('/save-form',auth, authorizeRoles('HOTELADMIN'),saveForm);
+router.get('/get-saved-form',auth,authorizeRoles('HOTELADMIN'),getSavedForm);
 
 router.get('/me', auth, authorizeRoles('HOTELADMIN'), async (req, res) => {
   try {
@@ -60,6 +94,51 @@ router.get('/me', auth, authorizeRoles('HOTELADMIN'), async (req, res) => {
 });
 
 router.get('/available-upgrades', auth, authorizeRoles('HOTELADMIN'), getAvailableUpgrades);
+
+/* ===================== Rate Routes ==================== */
+const rateUpload = multer({ 
+  storage: multer.memoryStorage(),
+  fileFilter: (req, file, cb) => {
+    console.log('Processing file:', file.originalname, 'with mimetype:', file.mimetype);
+    
+    // All possible Excel mimetypes
+    const excelMimetypes = [
+      'application/vnd.ms-excel', // .xls
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+      'application/octet-stream', // Sometimes used for Excel
+      'application/vnd.ms-excel.sheet.macroEnabled.12' // Macro-enabled .xlsm
+    ];
+
+    const validExt = /\.(xlsx|xls)$/i.test(path.extname(file.originalname));
+    const validMime = excelMimetypes.includes(file.mimetype);
+
+    if (validExt && validMime) {
+      console.log('File accepted');
+      return cb(null, true);
+    } else {
+      console.log('File rejected - Invalid type or extension');
+      cb(new Error('Only Excel files (.xlsx, .xls) are allowed'));
+    }
+  },
+  limits: { 
+    fileSize: 5 * 1024 * 1024, // 5MB
+    files: 1
+  }
+});
+
+router.get('/rates/template', auth, authorizeRoles('HOTELADMIN'), generateRateTemplate);
+router.post('/rates/upload', 
+  auth,authorizeRoles('HOTELADMIN'),rateUpload.single('file'),uploadRates);
+router.get('/rates/:rateType', auth, authorizeRoles('HOTELADMIN'), getRates);
+router.post('/rates/test-upload', auth, authorizeRoles('HOTELADMIN'), (req, res) => {
+  console.log('TEST UPLOAD ROUTE HIT');
+  console.log('Request headers:', req.headers);
+  console.log('Request body keys:', Object.keys(req.body || {}));
+  console.log('Request file:', req.file);
+  
+  res.json({ success: true, message: 'Test route reached' });
+});
+
 
 /* ===================== Reservation Routes ==================== */
 router.post('/reservation/create', auth, authorizeRoles('HOTELADMIN'), upload.single('photo'), createReservation);

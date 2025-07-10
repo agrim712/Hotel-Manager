@@ -40,7 +40,7 @@ const Navbar = () => {
     }
 
     axios
-      .get("/api/hotel/available-upgrades", {
+      .get("http://localhost:5000/api/hotel/available-upgrades", {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
@@ -111,19 +111,20 @@ const Navbar = () => {
                 </div>
                 <div className="absolute right-0 mt-2 hidden group-hover:block bg-white text-black rounded-lg shadow-lg border border-gray-200 z-50 w-64 max-h-48 overflow-y-auto">
                   {upgrades.map((module) => (
-                    <div
-                      key={module}
-                      className="flex justify-between items-center text-sm text-gray-800 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-md m-1"
-                    >
-                      <span>{module}</span>
-                      <button
-                        className="text-xs text-green-600 hover:underline"
-                        onClick={() => alert(`Buy ${module} clicked`)}
-                      >
-                        Buy →
-                      </button>
-                    </div>
-                  ))}
+  <div
+    key={module.value}
+    className="flex justify-between items-center text-sm text-gray-800 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-md m-1"
+  >
+    <span>{module.label}</span>
+    <button
+      className="text-xs text-green-600 hover:underline"
+      onClick={() => alert(`Buy ${module.label} clicked`)}
+    >
+      Buy →
+    </button>
+  </div>
+))}
+
                 </div>
               </div>
             )}
@@ -167,15 +168,18 @@ const Navbar = () => {
                           <p className="mt-2 font-semibold text-gray-700">Products:</p>
                           <ul className="text-sm text-gray-600 list-disc list-inside">
                             {[
-                              "PMS",
-                              "Spa & Wellness Management",
-                              "Bar & Beverage Management",
-                              "Restaurant & Dining Management",
+                              "Property Management System (PMS)",
+                              "Spa Management",
+                              "Revenue Management System (RMS)",
+                              "Bar Management",
+                              "Restaurant Management",
+                              "Laundry Management",
+                              "Cab/Travel Management"
                             ].map((feature) => (
                               <li
                                 key={feature}
                                 className={
-                                  hotel.products.includes(feature)
+                                  hotel.products.some((p) => p.label === feature)
                                     ? "text-green-600"
                                     : "text-gray-400 line-through"
                                 }

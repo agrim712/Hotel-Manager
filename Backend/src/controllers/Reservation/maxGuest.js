@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 export const maxGuests = async (req, res) => {
   const { roomType, rateType } = req.query;
   const { hotelId } = req.user;
-    console.log(hotelId);
+
   if (!roomType || !rateType) {
     return res.status(400).json({ error: "Missing roomType or rateType in query params." });
   }
@@ -20,11 +20,11 @@ export const maxGuests = async (req, res) => {
       where: {
         hotelId,
         name: roomType,
-        rateType
+        rateType,
       },
       select: {
-        maxGuests: true
-      }
+        maxGuests: true,
+      },
     });
 
     if (!result) {
@@ -33,7 +33,7 @@ export const maxGuests = async (req, res) => {
 
     res.json({ maxGuests: result.maxGuests });
   } catch (error) {
-    console.error("Failed to fetch number of rooms:", error);
-    res.status(500).json({ error: "Internal server error while fetching number of rooms." });
+    console.error("Failed to fetch max guests:", error);
+    res.status(500).json({ error: "Internal server error while fetching max guests." });
   }
 };

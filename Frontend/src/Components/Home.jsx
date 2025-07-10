@@ -130,7 +130,7 @@ const Home = () => {
               color: "from-purple-500 to-purple-600"
             },
             {
-              path: "/booking-engine",
+              path: "/bookingengine",
               title: "Booking Engine",
               desc: "Direct bookings with zero commission",
               color: "from-amber-500 to-amber-600"

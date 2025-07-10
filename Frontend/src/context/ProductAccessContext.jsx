@@ -1,4 +1,3 @@
-// ✅ ProductAccessContext.jsx
 import React, { createContext, useContext, useState, useEffect } from "react";
 
 const ProductContext = createContext();
@@ -10,13 +9,23 @@ export const ProductProvider = ({ children }) => {
     const stored = localStorage.getItem("products");
     if (stored) {
       try {
-        setProducts(JSON.parse(stored));
+        const parsed = JSON.parse(stored);
+        const finalProducts = typeof parsed === "string" ? JSON.parse(parsed) : parsed;
+
+        if (Array.isArray(finalProducts)) {
+          setProducts(finalProducts);
+        } else {
+          console.warn("Products in localStorage is not an array");
+        }
       } catch (err) {
-        console.error("Invalid products JSON", err);
-        setProducts([]);
+        console.error("Failed to parse products from localStorage", err);
       }
     }
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem("products", JSON.stringify(products));
+  }, [products]);
 
   return (
     <ProductContext.Provider value={{ products, setProducts }}>

@@ -34,6 +34,10 @@ export const createReservation = async (req, res) => {
       ? data.roomNumbers.split(',').map(r => r.trim())
       : data.roomNumbers;
 
+      console.log(roomNoArray);
+    // Convert simple room numbers to floor-room format for matching
+    const formattedRoomNumbers = roomNoArray; // No formatting needed
+
     const perDayRate = parseFloat(data.perDayRate);
     const perDayTax = parseFloat(data.perDayTax);
     const totalAmount = parseFloat(data.totalAmount) || perDayRate * nights * rooms;
@@ -42,30 +46,51 @@ export const createReservation = async (req, res) => {
     if (isNaN(guests) || isNaN(rooms) || isNaN(perDayRate) || isNaN(perDayTax)) {
       return res.status(400).json({ success: false, message: "Invalid numeric values" });
     }
-
-    const matchedRooms = await prisma.room.findMany({
+    console.log(formattedRoomNumbers)
+    // First find all possible room units that match our numbers
+    const possibleRoomUnits = await prisma.roomUnit.findMany({
       where: {
-        roomNumbers: { hasSome: roomNoArray },
         hotelId,
+        OR: formattedRoomNumbers.map(roomNo => ({
+          roomNumber: { equals: roomNo }
+        }))
       },
+      include: {
+        room: true
+      }
     });
 
-    if (matchedRooms.length === 0) {
-      return res.status(400).json({ success: false, message: "No matching rooms found" });
-    }
-
-    const matchingRoomUnits = await prisma.roomUnit.findMany({
-      where: {
-        roomNumber: { in: roomNoArray },
-        roomId: { in: matchedRooms.map(r => r.id) },
-      },
-    });
-
-    if (matchingRoomUnits.length === 0) {
+    if (possibleRoomUnits.length === 0) {
       return res.status(400).json({ success: false, message: "No matching room units found" });
     }
+    console.log(possibleRoomUnits);
+    // Get the actual room IDs from the found units
+    const roomIds = [...new Set(possibleRoomUnits.map(u => u.roomId))];
 
-    // ✅ Create reservation (NO status update)
+    // Verify these rooms actually contain these room numbers
+    // Construct floor-roomNumber format to match roomNumbers in Room model
+const floorRoomNumbers = possibleRoomUnits.map(unit => `${unit.floor}-${unit.roomNumber}`);
+
+const verifiedRooms = await prisma.room.findMany({
+  where: {
+    id: { in: roomIds },
+    OR: floorRoomNumbers.map(roomNo => ({
+      roomNumbers: { has: roomNo }
+    }))
+  }
+});
+
+
+    if (verifiedRooms.length === 0) {
+      return res.status(400).json({ success: false, message: "No verified rooms found" });
+    }
+
+    // Filter room units to only those that are in verified rooms
+    const matchingRoomUnits = possibleRoomUnits.filter(u => 
+      verifiedRooms.some(r => r.id === u.roomId)
+    );
+
+    // Create the reservation
     const reservation = await prisma.reservation.create({
       data: {
         checkIn,
@@ -98,16 +123,25 @@ export const createReservation = async (req, res) => {
         idDetail: data.idDetail,
         idProof: data.idProof || null,
         photoIdPath: photoFile ? `/uploads/${photoFile.filename}` : null,
-
         hotelId,
         roomUnitId: matchingRoomUnits[0]?.id,
         connectedRooms: {
-          connect: matchedRooms.map(r => ({ id: r.id })),
+          connect: verifiedRooms.map(r => ({ id: r.id })),
         },
       },
     });
 
-    // ✅ Notify via WebSocket
+    // Update room unit statuses to BOOKED
+    await prisma.roomUnit.updateMany({
+      where: {
+        id: { in: matchingRoomUnits.map(u => u.id) }
+      },
+      data: {
+        status: 'BOOKED'
+      }
+    });
+
+    // Notify via WebSocket
     emitReservationUpdate(io, hotelId, 'reservation-created', reservation);
     emitRoomStatusUpdate(io, hotelId, matchingRoomUnits);
 
@@ -118,6 +152,7 @@ export const createReservation = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
 
 export const deleteReservation = async (req, res) => {
   try {

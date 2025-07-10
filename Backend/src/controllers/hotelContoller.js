@@ -1,96 +1,192 @@
 import { PrismaClient } from '@prisma/client';
-import { createHotelSchema, roomUnitSchema } from "../validators/hotelSchema.js";
+import path from 'path';
+import fs from 'fs';
 import PDFDocument from "pdfkit";
+
 const prisma = new PrismaClient();
-
 const ALL_MODULES = [
-  "PMS",
-  "Channel Manager",
-  "RMS",
-  "Spa & Wellness Management",
-  "Bar & Beverage Management",
-  "Restaurant & Dining Management",
-  "All in One"
-];
+    { value: "Spa Management", label: "Spa Management" },
+    { value: "PMS", label: "Property Management System (PMS)" },
+    { value: "RMS", label: "Revenue Management System (RMS)" },
+    { value: "Bar Management", label: "Bar Management" },
+    { value: "Restaurant Management", label: "Restaurant Management" },
+    { value: "Laundry Management", label: "Laundry Management" },
+    { value: "Cab/Travel Management", label: "Cab/Travel Management" },
+    { label: "All in One", value: "All in One"}
+  ];
 
-// =================== Create or Update Hotel ===================
+
+// Helper function to save files locally
+
+
 export const createHotel = async (req, res) => {
   try {
-    const validated = createHotelSchema.parse(req.body);
-    const trimmedAddress = validated.address.trim();
-
-    const existingHotel = await prisma.hotel.findUnique({
-      where: { address: trimmedAddress }
+    const { body } = req;
+    console.log(req.body);
+    // Find the existing default hotel entry
+    const existingHotel = await prisma.hotel.findFirst({
+      where: {
+        email: body.email // Using email as the unique identifier
+      }
     });
 
-    const hotelData = {
-      name: validated.name,
-      country: validated.country,
-      city: validated.city,
-      contactPerson: validated.contactPerson,
-      phoneCode: validated.phoneCode,
-      phoneNumber: validated.phoneNumber,
-      whatsappNumber: validated.whatsappNumber,
-      totalRooms: validated.totalRooms,
-      email: validated.email,
-      propertyType: validated.propertyType,
-      currency: validated.currency,
-      products: validated.products
+    if (!existingHotel) {
+      return res.status(404).json({ error: "Default hotel entry not found" });
+    }
+
+    // Prepare update data - only update fields that are provided in the form
+    const updateData = {
+      // Basic Information
+      name: body.name || existingHotel.name,
+      brandAffiliation: body.brandAffiliation || existingHotel.brandAffiliation,
+      category: body.category || existingHotel.category,
+      registeredAddress: body.registeredAddress || existingHotel.registeredAddress,
+      operationalAddress: body.operationalAddress || existingHotel.operationalAddress,
+      
+      // Location Information
+      country: body.country || existingHotel.country,
+      state: body.state || existingHotel.state,
+      city: body.city || existingHotel.city,
+      pinCode: body.pinCode || existingHotel.pinCode,
+      timeZone: body.timeZone || existingHotel.timeZone,
+      preferredLanguage: body.preferredLanguage || existingHotel.preferredLanguage,
+      
+      // Contact Information
+      contactPerson: body.contactPerson || existingHotel.contactPerson,
+      phoneCode: body.phoneCode || existingHotel.phoneCode,
+      phoneNumber: body.phoneNumber || existingHotel.phoneNumber,
+      whatsappNumber: body.whatsappNumber || existingHotel.whatsappNumber,
+      email: body.email || existingHotel.email,
+      website: body.website || existingHotel.website,
+      googleMapsLink: body.googleMapsLink || existingHotel.googleMapsLink,
+
+      // Property Details
+      totalRooms: body.totalRooms ? Number(body.totalRooms) : existingHotel.totalRooms,
+      propertyType: body.propertyType || existingHotel.propertyType,
+      currency: body.currency || existingHotel.currency,
+
+      // Government & Tax Details
+      panNumber: body.panNumber || existingHotel.panNumber,
+      gstin: body.gstin || existingHotel.gstin,
+      fssaiLicense: body.fssaiLicense || existingHotel.fssaiLicense,
+      fireSafetyCert: body.fireSafetyCert || existingHotel.fireSafetyCert,
+      tradeLicense: body.tradeLicense || existingHotel.tradeLicense,
+      alcoholLicense: body.alcoholLicense || existingHotel.alcoholLicense,
+      tourismRegistration: body.tourismRegistration || existingHotel.tourismRegistration,
+      companyRegistration: body.companyRegistration || existingHotel.companyRegistration,
+
+      // Operations
+      checkInTime: body.checkInTime || existingHotel.checkInTime,
+      checkOutTime: body.checkOutTime || existingHotel.checkOutTime,
+      earlyCheckInPolicy: body.earlyCheckInPolicy || existingHotel.earlyCheckInPolicy,
+      lateCheckOutPolicy: body.lateCheckOutPolicy || existingHotel.lateCheckOutPolicy,
+      cancellationPolicy: body.cancellationPolicy || existingHotel.cancellationPolicy,
+      noShowPolicy: body.noShowPolicy || existingHotel.noShowPolicy,
+
+      // Accounting
+      invoiceFormat: body.invoiceFormat || existingHotel.invoiceFormat,
+      paymentModes: body.paymentModes || existingHotel.paymentModes,
+
+      // OTA
+      otas: body.otas || existingHotel.otas,
+      channelManager: body.channelManager || existingHotel.channelManager,
+      bookingEngine: body.bookingEngine || existingHotel.bookingEngine,
+
+      // Products
+      products: body.products || existingHotel.products,
+
+      // Documents
+      logoPath: body.logoPath || existingHotel.logoPath,
+      panCardPath: body.panCardPath || existingHotel.panCardPath,
+      gstCertPath: body.gstCertPath || existingHotel.gstCertPath,
+      tradeLicensePath: body.tradeLicensePath || existingHotel.tradeLicensePath,
+      fireSafetyCertPath: body.fireSafetyCertPath || existingHotel.fireSafetyCertPath,
+      fssaiLicensePath: body.fssaiLicensePath || existingHotel.fssaiLicensePath,
+      cancelledChequePath: body.cancelledChequePath || existingHotel.cancelledChequePath,
+      idProofPath: body.idProofPath || existingHotel.idProofPath,
+      propertyImages: body.propertyImages || existingHotel.propertyImages,
+      
+      // Mark as completed
+      isPaymentDone: true // Assuming payment is done when form is submitted
     };
 
-    let hotel;
-
-    if (existingHotel) {
-      // Update Hotel
-      hotel = await prisma.hotel.update({
-        where: { address: trimmedAddress },
-        data: hotelData,
+    // Use transaction for atomic operations
+    const result = await prisma.$transaction(async (tx) => {
+      // Update the hotel
+      const updatedHotel = await tx.hotel.update({
+        where: { id: existingHotel.id },
+        data: updateData,
       });
 
-      await prisma.room.deleteMany({ where: { hotelId: hotel.id } });
+      // Delete existing bank accounts and rooms if they exist
+      await tx.bankAccount.deleteMany({ where: { hotelId: existingHotel.id } });
+      await tx.room.deleteMany({ where: { hotelId: existingHotel.id } });
 
-    } else {
-      // Create Hotel
-      hotel = await prisma.hotel.create({
-        data: { ...hotelData, address: trimmedAddress },
-      });
-    }
-
-    if (validated.rooms && validated.rooms.length > 0) {
-      for (const room of validated.rooms) {
-        const createdRoom = await prisma.room.create({
-          data: {
-            name: room.name,
-            numOfRooms: room.numOfRooms,
-            maxGuests: room.maxGuests,
-            rateType: room.rateType,
-            rate: room.rate,
-            extraAdultRate: room.extraAdultRate,
-            roomNumbers: room.roomNumbers,
-            hotelId: hotel.id,
-          }
+      // Create new bank accounts if provided
+      if (body.bankAccounts && Array.isArray(body.bankAccounts)) {
+        await tx.bankAccount.createMany({
+          data: body.bankAccounts.map(account => ({
+            accountHolderName: account.accountHolderName || '',
+            bankName: account.bankName || '',
+            accountNumber: account.accountNumber || '',
+            ifscCode: account.ifscCode || '',
+            accountType: account.accountType || 'Savings',
+            branch: account.branch || '',
+            hotelId: existingHotel.id
+          }))
         });
-
-        const roomUnitData = room.roomNumbers.map(roomNumber => {
-          return roomUnitSchema.parse({
-            roomNumber,
-            roomId: createdRoom.id
-          });
-        });
-
-        await prisma.roomUnit.createMany({ data: roomUnitData });
       }
-    }
 
-    return res.status(existingHotel ? 200 : 201).json({
-      message: existingHotel ? "Hotel updated successfully" : "Hotel created successfully",
-      hotel
+      // Create new rooms if provided
+      if (body.rooms && Array.isArray(body.rooms)) {
+        for (const room of body.rooms) {
+          const createdRoom = await tx.room.create({
+            data: {
+              name: room.name || '',
+              numOfRooms: Number(room.numOfRooms) || 0,
+              maxGuests: Number(room.maxGuests) || 0,
+              rateType: room.rateType || null,
+              rate: Number(room.rate) || 0,
+              extraAdultRate: Number(room.extraAdultRate) || 0,
+              roomNumbers: Array.isArray(room.roomNumbers) ? room.roomNumbers : [],
+              amenities: room.amenities || null,
+              smoking: room.smoking || "non-smoking",
+              extraBedPolicy: room.extraBedPolicy || null,
+              childPolicy: room.childPolicy || null,
+              roomImages: Array.isArray(room.roomImages) ? room.roomImages : [],
+              hotelId: existingHotel.id
+            }
+          });
+          // Create RoomUnit entries for each room number
+if (Array.isArray(room.roomNumbers)) {
+  for (const rn of room.roomNumbers) {
+    const [floor, number] = rn.split("-"); // assuming format "floor-roomNumber"
+    await tx.roomUnit.create({
+      data: {
+        roomId: createdRoom.id,
+        floor: floor || null,
+        roomNumber: number || rn, // fallback to full string if splitting fails
+        hotelId: existingHotel.id
+      }
     });
+  }
+}
+        }
+      }
+
+      return updatedHotel;
+    });
+
+    return res.status(200).json({
+      message: "Hotel updated successfully",
+      hotel: result
+    });
+
   } catch (err) {
-    console.error("Hotel create/update error:", err);
-    return res.status(400).json({
-      error: "Invalid data or server error",
-      details: err?.errors || err.message
+    console.error("Hotel update error:", err);
+    return res.status(500).json({
+      error: "Server error",
+      details: err.message
     });
   }
 };
@@ -111,7 +207,6 @@ export const getHotelMe = async (req, res) => {
     if (!hotel) {
       return res.status(404).json({ message: "Hotel not found" });
     }
-
     return res.json({ hotel });
   } catch (err) {
     console.error("Error fetching hotel info:", err);
@@ -133,16 +228,21 @@ export const getAvailableUpgrades = async (req, res) => {
       return res.status(404).json({ message: "Hotel not found" });
     }
 
-    const upgrades = ALL_MODULES.filter(module =>
-      !(hotel.products || []).includes(module)
-    );
+    // Compare by label instead of value
+    const existingLabels = (hotel.products || []).map(p => p.label);
 
+    const upgrades = ALL_MODULES.filter(
+      module => !existingLabels.includes(module.label)
+    );
     return res.json({ upgrades });
   } catch (err) {
     console.error("Error fetching upgrades:", err);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+
+
+
 export const downloadHotelPolicy = async (req, res) => {
   try {
     const user = req.user;
