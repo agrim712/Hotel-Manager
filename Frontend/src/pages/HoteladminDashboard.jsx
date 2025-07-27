@@ -1237,7 +1237,7 @@ const onSubmit = async (formData) => {
                 <input 
                   {...register("googleMapsLink", {
                     pattern: {
-                      value: /^(https?:\/\/)?(www\.)?google\.[a-z]+\/maps\/.+$/,
+                      value: /^(https?:\/\/)?(www\.)?(google\.[a-z]+\/maps\/|maps\.app\.goo\.gl\/).+$/,
                       message: "Invalid Google Maps link"
                     }
                   })} 

@@ -29,6 +29,7 @@
     "multer": "^2.0.0",
     "node-cron": "^4.1.1",
     "pdfkit": "^0.17.1",
+    "python-shell": "^5.0.0",
     "razorpay": "^2.9.6",
     "socket.io": "^4.8.1",
     "zod": "^3.24.3"

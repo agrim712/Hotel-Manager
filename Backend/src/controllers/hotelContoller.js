@@ -214,6 +214,92 @@ export const getHotelMe = async (req, res) => {
   }
 };
 
+// =================== All Room Units ===================
+
+
+export const getAllRooms = async (req, res) => {
+  try {
+    const { hotelId } = req.query;
+    
+    const roomUnits = await prisma.roomUnit.findMany({
+      where: hotelId ? { hotelId } : undefined,
+      include: {
+        room: {
+          select: {
+            name: true,
+            rateType: true,
+            rate: true,
+            hotelId: true,
+          }
+        },
+        hotel: {
+          select: {
+            name: true,
+            city: true,
+            timeZone: true,
+          }
+        },
+        reservations: true,
+      }
+    });
+    
+    res.status(200).json({ success: true, data: roomUnits });
+  } catch (error) {
+    console.error("Error fetching room units:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch room units." });
+  }
+};
+
+// =================== Room TABLE ===================
+export const getRoomDetails = async (req, res) => {
+  try {
+    const { hotelId } = req.query;
+
+
+    const room = await prisma.room.findUnique({
+      where: {
+        hotelId: hotelId
+      },
+      include: {
+        RoomUnit: {
+          include: {
+            reservations: true
+          }
+        },
+        hotel: {
+          select: {
+            name: true,
+            city: true,
+            checkInTime: true,
+            checkOutTime: true,
+            cancellationPolicy: true,
+            noShowPolicy: true
+          }
+        }
+      }
+    });
+
+    if (!room) {
+      return res.status(404).json({
+        success: false,
+        error: 'Room not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: room
+    });
+
+  } catch (error) {
+    console.error('Error fetching room details:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+};
+
 // =================== Get Available Upgrades ===================
 export const getAvailableUpgrades = async (req, res) => {
   try {

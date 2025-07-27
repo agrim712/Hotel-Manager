@@ -13,7 +13,9 @@ import RestaurantRoutes from './src/routes/RestaurantRoutes.js';
 import Superadmin from "./src/routes/Superadmin.js";
 import cron from 'node-cron';
 import expenseRoutes from './src/routes/expenseRoutes.js';
+import pricing from "./src/routes/pricing.js"
 import { updateRoomUnitStatus } from './src/controllers/Reservation/changeStatus.js';
+
 import path from 'path';
 
 const app = express();
@@ -52,7 +54,7 @@ app.use('/api/hotel', hotelRoutes); // Only register once!
 app.use('/api/expense', expenseRoutes);
 app.use('/api/menu', RestaurantRoutes);
 app.use("/api/superadmin", Superadmin);
-
+app.use("/api", pricing);
 // Health Check
 app.get('/api/health', (req, res) => {
   res.json({ 

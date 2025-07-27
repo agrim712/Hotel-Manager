@@ -8,6 +8,7 @@ import AvailableRoomNumbers from '../../Components/Selects/RoomNumbers';
 // import RoomAndRateSection from "../../Components/Selects/RoomAndRateSection";
 import RateTypeSelect from '../../Components/Selects/RateTypeSelect';
 import RoomTypeSelect from '../../Components/Selects/RoomTypeSelect';
+import { getDynamicPrice } from '../../services/PricingService';
 import NumberOfRoomsDropdown from '../../Components/Selects/NoOfRoomTypeSelect';
 import MaxGuestsInput from '../../Components/Selects/MaxGuests';
 // Reusable Input Component
@@ -59,6 +60,7 @@ const CreateReservation = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedRoomNumbers, setSelectedRoomNumbers] = useState([]);
+  const [isCalculatingPrice, setIsCalculatingPrice] = useState(false);
   const [errors, setErrors] = useState({});
     const [successMessage, setSuccessMessage] = useState('');
   const COUNTRY_API_URL = 'https://api.countrystatecity.in/v1/countries';
@@ -125,6 +127,7 @@ const CreateReservation = () => {
     };
     fetchCountries();
   }, []);
+  
 
   // Fetch cities when country changes
   useEffect(() => {
@@ -175,6 +178,37 @@ useEffect(() => {
     setFormData((prev) => ({ ...prev, nights: 0 }));
   }
 }, [formData.checkInDate, formData.checkOutDate, formData.checkInTime, formData.checkOutTime]);
+useEffect(() => {
+  const calculatePrice = async () => {
+    if (formData.checkInDate && formData.checkOutDate && formData.roomType && formData.rooms) {
+      setIsCalculatingPrice(true);
+      try {
+        const response = await getDynamicPrice(
+          'your-hotel-id', // Replace with actual hotel ID
+          formData.roomType,
+          formData.checkInDate.toISOString().split('T')[0],
+          formData.checkOutDate.toISOString().split('T')[0],
+          formData.rooms
+        );
+        
+        // Update only the rate and total fields
+        setFormData(prev => ({
+          ...prev,
+          perDayRate: response.predicted_price_per_night.toFixed(2),
+          perDayTax: '0.00' // Reset tax or calculate based on your logic
+        }));
+      } catch (error) {
+        console.error('Price calculation failed:', error);
+        toast.error('Failed to calculate dynamic price. Using standard rates.');
+      } finally {
+        setIsCalculatingPrice(false);
+      }
+    }
+  };
+
+  const debounceTimer = setTimeout(calculatePrice, 500);
+  return () => clearTimeout(debounceTimer);
+}, [formData.checkInDate, formData.checkOutDate, formData.roomType, formData.rooms]);
 
   // Handle generic input changes
   const handleChange = (e) => {
@@ -556,14 +590,21 @@ const combineDateAndTime = (date, timeStr) => {
 
         {/* Per Day Rate, Per Day Tax, Tax Inclusive */}
         <div className="grid grid-cols-3 gap-6 items-center">
-          <FormInput
-            label="Per Day Rate"
-            name="perDayRate"
-            value={formData.perDayRate}
-            onChange={handleChange}
-            error={errors.perDayRate}
-            required={true}
-          />
+          <div className="relative">
+  <FormInput
+    label="Per Day Rate"
+    name="perDayRate"
+    value={formData.perDayRate}
+    onChange={handleChange}
+    error={errors.perDayRate}
+    required={true}
+  />
+  {isCalculatingPrice && (
+    <div className="absolute right-2 top-8">
+      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+    </div>
+  )}
+</div>
 
           <FormInput
             label="Per Day Tax"
@@ -587,7 +628,9 @@ const combineDateAndTime = (date, timeStr) => {
 
         {/* Total Amount (calculated) */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Total Amount {isCalculatingPrice && '(Calculating...)'}
+          </label>
           <input
             type="text"
             readOnly

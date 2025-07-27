@@ -13,6 +13,7 @@ import HoteladminDashboard from './pages/HoteladminDashboard';
 import ProtectedRoute from './Components/ProtectedRoute';
 import Payment from './Components/Payment';
 import { useAuth, AuthProvider } from "./context/AuthContext";
+import { RoomProvider } from './context/RoomContext';
 import Pmss from './pages/PMS/Pmss';
 import Reservation from './pages/PMS/Reservation';
 import CreateReservation from './pages/PMS/CreateReservation';
@@ -36,6 +37,7 @@ import SearchResultsPage from './pages/BookingEngine/SearchResultsPage';
 import RoomDetailPage from './pages/BookingEngine/RoomDetailPage';
 import RateManagement from './pages/PMS/RateManagement';
 import ExpenseManager from './pages/PMS/ExpenseManager';
+import RevenueManagement from './pages/PMS/RevenueManagement'
 import { ProductProvider, useProductContext } from "./context/ProductAccessContext";
 // In your axios configuration file or App.js
 import axios from 'axios';
@@ -66,6 +68,7 @@ const ProductRoutes = () => {
           <Route path="/pmss/reservation/create/group" element={<GroupReservationForm />} />
           <Route path="/pmss/guests" element={<GuestListHeader />} />
           <Route path="/pmss/rate-management" element={<RateManagement />} />
+          <Route path="/pmss/revenue-manager" element={<RevenueManagement />} />
         </>
       )}
 
@@ -116,7 +119,7 @@ const AppRoutes = () => {
   <Route path="/booking-engine" element={<HomePage />} />
   <Route path="/booking-engine/:hotelId" element={<HomePage />} />
   <Route path="/booking-engine/search" element={<SearchResultsPage />} />
-  <Route path="/booking-engine/room" element={<RoomDetailPage />} />
+  <Route path="/booking-engine/:hotelId/room" element={<RoomDetailPage />} />
             <Route
               path="/superadmin-dashboard"
               element={
@@ -149,8 +152,10 @@ const AppRoutes = () => {
 
 const App = () => (
   <AuthProvider>
+  <RoomProvider>
     <AppRoutes />
-  </AuthProvider>
+  </RoomProvider>
+</AuthProvider>
 );
 
 export default App;

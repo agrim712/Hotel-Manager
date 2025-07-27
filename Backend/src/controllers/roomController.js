@@ -90,20 +90,7 @@ export const getRoomsWithUnits = async (req, res) => {
         roomNumber: true,
         floor: true,
         status: true,
-        room: {
-          select: {
-            id: true,
-            name: true,
-            rateType: true,
-            rate: true,
-            maxGuests: true,
-            smoking: true,
-            extraBedPolicy: true,
-            childPolicy: true,
-            roomImages: true,
-            amenities: true
-          }
-        }
+        room: true // ✅ return all fields from the Room table
       },
       orderBy: {
         roomNumber: 'asc'
@@ -113,7 +100,7 @@ export const getRoomsWithUnits = async (req, res) => {
     return res.json({
       success: true,
       count: roomUnits.length,
-      rooms: roomUnits  // <== to match frontend's `fetchedRooms = roomsJson.rooms`
+      rooms: roomUnits
     });
 
   } catch (error) {
@@ -125,3 +112,4 @@ export const getRoomsWithUnits = async (req, res) => {
     });
   }
 };
+

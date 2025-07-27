@@ -4,7 +4,6 @@ import fs from "fs";
 import multer from "multer";
 import { fileURLToPath } from "url";
 import { PrismaClient } from "@prisma/client";
-
 import { auth, authorizeRoles } from "../middleware/auth.js";
 import { createHotel, getAvailableUpgrades } from "../controllers/hotelContoller.js";
 import { getRoomTypes } from "../controllers/Reservation/roomType.js";
@@ -20,6 +19,9 @@ import { getAllRoomUnits } from "../controllers/roomUnit.js";
 import { updateRoomUnitStatus } from "../controllers/UpdateStatus.js";
 import { downloadHotelPolicy } from '../controllers/hotelContoller.js';
 import { getSavedForm, saveForm } from "../controllers/formController.js";
+import { getHotelKPI } from "../controllers/Revenue/revenueController.js";
+import { getAllRooms } from "../controllers/hotelContoller.js";
+import { getRoomDetails } from "../controllers/hotelContoller.js";
 import { 
   generateRateTemplate, 
   uploadRates, 
@@ -166,6 +168,11 @@ router.get(
   authorizeRoles("HOTELADMIN"),
   downloadHotelPolicy
 );
+/* ======================== Revenue Routes ======================== */
+router.get("/kpi/:hotelId", getHotelKPI);
+router.get("/rooms", auth, authorizeRoles('HOTELADMIN'),getRoomDetails);
+router.get('/rooms-units',  auth, authorizeRoles('HOTELADMIN'),getAllRooms);
+
 
 /* ======================== Report Routes ======================== */
 router.get('/reports/day-wise-report', auth, authorizeRoles('HOTELADMIN'), async (req, res) => {

@@ -1,0 +1,8 @@
+pandas>=1.3.0
+numpy==1.26.4
+scikit-learn>=1.0.0
+python-dateutil>=2.8.2
+holidays>=0.14.2
+joblib>=1.1.0
+scipy>=1.14.1
+traffic==2.10.2
