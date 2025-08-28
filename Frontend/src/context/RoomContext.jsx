@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
+import { socket } from '../../src/SocketClient'
 
 const RoomContext = createContext();
 
@@ -10,12 +11,31 @@ export const RoomProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Setup socket connection
+  
+useEffect(() => {
+  if (!hotel?.id || authLoading) return;
+
+  socket.emit("joinHotel", { hotelId: hotel.id });
+
+  socket.on("roomCleaningStatusUpdated", (payload) => {
+    const updatedRoom = payload.data;
+    setRooms((prevRooms) =>
+      prevRooms.map((room) =>
+        room.id === updatedRoom.id ? { ...room, cleaningStatus: updatedRoom.cleaningStatus } : room
+      )
+    );
+  });
+
+  return () => {
+    socket.off("roomCleaningStatusUpdated");
+  };
+}, [hotel?.id, authLoading]);
+
   const fetchRooms = async () => {
     if (authLoading || !hotel?.id) return;
-
     setLoading(true);
     setError(null);
-
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get('http://localhost:5000/api/hotel/rooms-with-units', {
@@ -24,7 +44,7 @@ export const RoomProvider = ({ children }) => {
       });
 
       if (response.data?.success) {
-        setRooms(response.data.rooms || []); // <-- uses 'rooms' key from backend
+        setRooms(response.data.rooms || []);
       } else {
         throw new Error(response.data?.error || 'Failed to fetch rooms');
       }
@@ -48,7 +68,7 @@ export const RoomProvider = ({ children }) => {
       rooms,
       loading: loading || authLoading,
       error,
-      fetchRooms,
+      refreshRooms: fetchRooms, // still keep for manual refresh if needed
       hotelLoaded: !!hotel?.id && !authLoading
     }}>
       {children}

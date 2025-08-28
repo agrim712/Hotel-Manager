@@ -14,7 +14,7 @@ const Login = () => {
   const [isHovered, setIsHovered] = useState(false);
   const navigate = useNavigate();
 
-  const { setProducts } = useProductContext();
+    const { products, setProducts, loading: productsLoading } = useProductContext();
   const { setIsLoggedIn, setUserRole } = useAuth();
 
   const handleLogin = async (e) => {

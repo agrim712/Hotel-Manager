@@ -80,15 +80,39 @@ prisma.$connect()
   });
 
 // Cron Job
-cron.schedule('* * * * *', () => {
+cron.schedule('*/15 * * * *', () => {
   console.log('⏳ Running scheduled room unit status check...');
-  updateRoomUnitStatus().catch(console.error);
+  updateRoomUnitStatus(io).catch(console.error);
 });
 
+
 // Server Start
+io.on('connection', (socket) => {
+  console.log('Socket connected:', socket.id);
+
+  // Client should send { hotelId } to join hotel's room
+  socket.on('joinHotel', ({ hotelId }) => {
+    if (!hotelId) return;
+    const room = `hotel_${hotelId}`;
+    socket.join(room);
+    console.log(`Socket ${socket.id} joined ${room}`);
+  });
+
+  // Optional: let client leave hotel room
+  socket.on('leaveHotel', ({ hotelId }) => {
+    if (!hotelId) return;
+    socket.leave(`hotel_${hotelId}`);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Socket disconnected:', socket.id);
+  });
+});
+
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🔗 http://localhost:${PORT}`);
   console.log(`🌐 WebSocket server active`);
 });
+export { app, server, io };

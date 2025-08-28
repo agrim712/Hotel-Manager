@@ -61,44 +61,80 @@ export const login = async (req, res) => {
     }
 
     // --- HOTELADMIN Login ---
-    if (role === 'HOTELADMIN') {
-      const user = await prisma.user.findFirst({
-        where: {
-          email,
-          role: 'HOTELADMIN'
-        },
-        include: { hotel: true }
-      });
+// --- HOTELADMIN Login ---
+if (role === 'HOTELADMIN') {
+  // 1. Try regular hotel admin login
+  const user = await prisma.user.findFirst({
+    where: {
+      email,
+      role: 'HOTELADMIN'
+    },
+    include: { hotel: true }
+  });
 
-      if (!user) {
-        return res.status(401).json({ error: 'Invalid credentials' });
-      }
+  if (user) {
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
 
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) {
-        return res.status(401).json({ error: 'Invalid credentials' });
-      }
-
-      const token = jwt.sign(
-        {
-          userId: user.id,
-          role: user.role,
-          hotelId: user.hotelId,
-          email: user.email
-        },
-        process.env.JWT_SECRET,
-        { expiresIn: '1h' }
-      );
-
-      return res.status(200).json({
-        token,
+    const token = jwt.sign(
+      {
+        userId: user.id,
         role: user.role,
         hotelId: user.hotelId,
-        hotelName: user.hotel?.name || null,
-        isPaymentDone: user.hotel?.isPaymentDone || false,
-        products: user.hotel?.products || [] // ✅ Send purchased modules
-      });
-    }
+        email: user.email
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    return res.status(200).json({
+      token,
+      role: user.role,
+      hotelId: user.hotelId,
+      hotelName: user.hotel?.name || null,
+      isPaymentDone: user.hotel?.isPaymentDone || false,
+      products: user.hotel?.products || []
+    });
+  }
+
+  // 2. Fallback to staff login
+  const staff = await prisma.staffUser.findUnique({
+    where: { email },
+    include: { hotel: true }
+  });
+
+  if (!staff) {
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+
+  const isStaffMatch = await bcrypt.compare(password, staff.password);
+  if (!isStaffMatch) {
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+
+  const token = jwt.sign(
+    {
+      userId: staff.id,
+      role: staff.role, // use "Front Office", "Housekeeping", etc.
+      hotelId: staff.hotelId,
+      email: staff.email
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: '1h' }
+  );
+
+  return res.status(200).json({
+    token,
+    role: staff.role,
+    hotelId: staff.hotelId,
+    hotelName: staff.hotel?.name || null,
+    isPaymentDone: staff.hotel?.isPaymentDone || false,
+    products: staff.hotel?.products || []
+  });
+}
+
 
     return res.status(400).json({ error: 'Invalid role specified' });
 

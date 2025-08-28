@@ -1,3 +1,4 @@
+// src/controllers/reservationController.js
 import { PrismaClient } from '@prisma/client';
 import { emitReservationUpdate, emitRoomStatusUpdate } from '../../utils/websocketEvents.js';
 
@@ -8,6 +9,7 @@ function parseDateStrict(dateStr) {
   return isNaN(d.getTime()) ? null : d;
 }
 
+// CREATE RESERVATION
 export const createReservation = async (req, res) => {
   try {
     const data = req.body;
@@ -34,10 +36,6 @@ export const createReservation = async (req, res) => {
       ? data.roomNumbers.split(',').map(r => r.trim())
       : data.roomNumbers;
 
-      console.log(roomNoArray);
-    // Convert simple room numbers to floor-room format for matching
-    const formattedRoomNumbers = roomNoArray; // No formatting needed
-
     const perDayRate = parseFloat(data.perDayRate);
     const perDayTax = parseFloat(data.perDayTax);
     const totalAmount = parseFloat(data.totalAmount) || perDayRate * nights * rooms;
@@ -46,51 +44,41 @@ export const createReservation = async (req, res) => {
     if (isNaN(guests) || isNaN(rooms) || isNaN(perDayRate) || isNaN(perDayTax)) {
       return res.status(400).json({ success: false, message: "Invalid numeric values" });
     }
-    console.log(formattedRoomNumbers)
-    // First find all possible room units that match our numbers
+
+    // Find matching room units
     const possibleRoomUnits = await prisma.roomUnit.findMany({
       where: {
         hotelId,
-        OR: formattedRoomNumbers.map(roomNo => ({
-          roomNumber: { equals: roomNo }
-        }))
+        OR: roomNoArray.map(roomNo => ({ roomNumber: roomNo }))
       },
-      include: {
-        room: true
+      include: { room: true }
+    });
+
+    if (!possibleRoomUnits.length) {
+      return res.status(400).json({ success: false, message: "No matching room units found" });
+    }
+
+    const roomIds = [...new Set(possibleRoomUnits.map(u => u.roomId))];
+    const floorRoomNumbers = possibleRoomUnits.map(unit => `${unit.floor}-${unit.roomNumber}`);
+
+    const verifiedRooms = await prisma.room.findMany({
+      where: {
+        id: { in: roomIds },
+        OR: floorRoomNumbers.map(roomNo => ({
+          roomNumbers: { has: roomNo }
+        }))
       }
     });
 
-    if (possibleRoomUnits.length === 0) {
-      return res.status(400).json({ success: false, message: "No matching room units found" });
-    }
-    console.log(possibleRoomUnits);
-    // Get the actual room IDs from the found units
-    const roomIds = [...new Set(possibleRoomUnits.map(u => u.roomId))];
-
-    // Verify these rooms actually contain these room numbers
-    // Construct floor-roomNumber format to match roomNumbers in Room model
-const floorRoomNumbers = possibleRoomUnits.map(unit => `${unit.floor}-${unit.roomNumber}`);
-
-const verifiedRooms = await prisma.room.findMany({
-  where: {
-    id: { in: roomIds },
-    OR: floorRoomNumbers.map(roomNo => ({
-      roomNumbers: { has: roomNo }
-    }))
-  }
-});
-
-
-    if (verifiedRooms.length === 0) {
+    if (!verifiedRooms.length) {
       return res.status(400).json({ success: false, message: "No verified rooms found" });
     }
 
-    // Filter room units to only those that are in verified rooms
-    const matchingRoomUnits = possibleRoomUnits.filter(u => 
+    const matchingRoomUnits = possibleRoomUnits.filter(u =>
       verifiedRooms.some(r => r.id === u.roomId)
     );
 
-    // Create the reservation
+    // Create reservation
     const reservation = await prisma.reservation.create({
       data: {
         checkIn,
@@ -126,22 +114,18 @@ const verifiedRooms = await prisma.room.findMany({
         hotelId,
         roomUnitId: matchingRoomUnits[0]?.id,
         connectedRooms: {
-          connect: verifiedRooms.map(r => ({ id: r.id })),
+          connect: verifiedRooms.map(r => ({ id: r.id }))
         },
       },
     });
 
-    // Update room unit statuses to BOOKED
+    // Update booked room units
     await prisma.roomUnit.updateMany({
-      where: {
-        id: { in: matchingRoomUnits.map(u => u.id) }
-      },
-      data: {
-        status: 'BOOKED'
-      }
+      where: { id: { in: matchingRoomUnits.map(u => u.id) } },
+      data: { status: 'BOOKED' }
     });
 
-    // Notify via WebSocket
+    // 🔥 Real-time push
     emitReservationUpdate(io, hotelId, 'reservation-created', reservation);
     emitRoomStatusUpdate(io, hotelId, matchingRoomUnits);
 
@@ -153,43 +137,7 @@ const verifiedRooms = await prisma.room.findMany({
   }
 };
 
-
-export const deleteReservation = async (req, res) => {
-  try {
-    const io = req.app.get('io');
-    const hotelId = req.user?.hotelId;
-    const { id: reservationId } = req.params;
-
-    // Get reservation
-    const reservation = await prisma.reservation.findUnique({
-      where: { id: reservationId },
-    });
-
-    if (!reservation) {
-      return res.status(404).json({ success: false, message: 'Reservation not found' });
-    }
-
-    // Delete reservation
-    await prisma.reservation.delete({
-      where: { id: reservationId },
-    });
-
-    // Set related room unit to AVAILABLE
-    if (reservation.roomUnitId) {
-      await prisma.roomUnit.update({
-        where: { id: reservation.roomUnitId },
-        data: { status: 'AVAILABLE' },
-      });
-    }
-
-    emitReservationUpdate(io, hotelId, 'reservation-deleted', { id: reservationId });
-
-    return res.json({ success: true, message: 'Reservation deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting reservation:', error);
-    return res.status(500).json({ success: false, message: 'Server error while deleting reservation' });
-  }
-};
+// UPDATE RESERVATION
 export const updateReservation = async (req, res) => {
   try {
     const io = req.app.get('io');
@@ -197,26 +145,69 @@ export const updateReservation = async (req, res) => {
     const reservationId = req.params.id;
     const updatedData = req.body;
 
-    const existing = await prisma.reservation.findUnique({
-      where: { id: reservationId },
-    });
-
+    const existing = await prisma.reservation.findUnique({ where: { id: reservationId } });
     if (!existing) {
       return res.status(404).json({ success: false, message: 'Reservation not found' });
     }
 
     const updatedReservation = await prisma.reservation.update({
       where: { id: reservationId },
-      data: {
-        ...updatedData,
-        updatedAt: new Date(),
-      },
+      data: { ...updatedData, updatedAt: new Date() },
     });
 
+    // 🔥 Real-time push
     emitReservationUpdate(io, hotelId, 'reservation-updated', updatedReservation);
+
+    // If room status changed, update room unit status as well
+    if (updatedData.status && existing.roomUnitId) {
+      await prisma.roomUnit.update({
+        where: { id: existing.roomUnitId },
+        data: { status: updatedData.status }
+      });
+
+      const updatedRoomUnit = await prisma.roomUnit.findUnique({ where: { id: existing.roomUnitId } });
+      emitRoomStatusUpdate(io, hotelId, [updatedRoomUnit]);
+    }
+
     return res.json({ success: true, data: updatedReservation });
   } catch (err) {
     console.error('Error updating reservation:', err);
     return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+// DELETE RESERVATION
+export const deleteReservation = async (req, res) => {
+  try {
+    const io = req.app.get('io');
+    const hotelId = req.user?.hotelId;
+    const { id: reservationId } = req.params;
+
+    const reservation = await prisma.reservation.findUnique({ where: { id: reservationId } });
+    if (!reservation) {
+      return res.status(404).json({ success: false, message: 'Reservation not found' });
+    }
+
+    await prisma.reservation.delete({ where: { id: reservationId } });
+
+    // Set related room to AVAILABLE
+    let updatedRoomUnit = null;
+    if (reservation.roomUnitId) {
+      updatedRoomUnit = await prisma.roomUnit.update({
+        where: { id: reservation.roomUnitId },
+        data: { status: 'AVAILABLE' },
+      });
+    }
+
+    // 🔥 Real-time push
+    emitReservationUpdate(io, hotelId, 'reservation-deleted', { id: reservationId });
+    if (updatedRoomUnit) {
+      emitRoomStatusUpdate(io, hotelId, [updatedRoomUnit]);
+    }
+
+    return res.json({ success: true, message: 'Reservation deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting reservation:', error);
+    return res.status(500).json({ success: false, message: 'Server error while deleting reservation' });
   }
 };

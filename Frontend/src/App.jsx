@@ -41,6 +41,14 @@ import RevenueManagement from './pages/PMS/RevenueManagement'
 import { ProductProvider, useProductContext } from "./context/ProductAccessContext";
 // In your axios configuration file or App.js
 import axios from 'axios';
+import HousekeepingDashboard from './pages/PMS/HouseKeeping';
+import OperationsDashboard from './pages/PMS/OperationsDashboard';
+import SecurityManagement from './pages/PMS/SecurityManagement';
+import SalesMarketing from './pages/PMS/SalesMarketing';
+import EmployeeDirectory from './pages/PMS/EmployeeDirectory';
+import EmployeeForm from './pages/PMS/EmployeeForm';
+import AccountingDashboard from './pages/PMS/Accounting';
+import FolioCreation from './pages/PMS/CustomerFolio';
 
 axios.defaults.baseURL = 'http://localhost:5000';
 const ProductRoutes = () => {
@@ -62,6 +70,14 @@ const ProductRoutes = () => {
             <Route path="rooms-view" element={<RoomsView />} />
             <Route path="reports" element={<Reports />} />
              <Route path="expenses" element={<ExpenseManager />} />
+             <Route path="housekeeping" element={<HousekeepingDashboard />} />
+             <Route path="operations" element={<OperationsDashboard />} />
+                   <Route path="hr" element={<EmployeeDirectory />} />
+      <Route path="hr/employee" element={<EmployeeForm />} />
+             <Route path="security" element={<SecurityManagement />} />
+             <Route path="sales" element={<SalesMarketing />} />
+             <Route path="accounting" element={<AccountingDashboard />} />
+             <Route path="folio" element={<FolioCreation />} />
           </Route>
           <Route path="/pmss/reservation/create/complimentary" element={<ComplimentaryReservation />} />
           <Route path="/pmss/reservation/create/outoforder" element={<OutOfOrderRoomForm />} />

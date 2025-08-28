@@ -22,7 +22,6 @@ const ALL_MODULES = [
 export const createHotel = async (req, res) => {
   try {
     const { body } = req;
-    console.log(req.body);
     // Find the existing default hotel entry
     const existingHotel = await prisma.hotel.findFirst({
       where: {
@@ -196,17 +195,20 @@ export const getHotelMe = async (req, res) => {
   try {
     const user = req.user;
 
-    if (!user || !user.hotelId) {
+    const hotelId = user?.hotelId;
+
+    if (!hotelId) {
       return res.status(401).json({ message: "User not associated with any hotel" });
     }
 
     const hotel = await prisma.hotel.findUnique({
-      where: { id: user.hotelId },
+      where: { id: hotelId },
     });
 
     if (!hotel) {
       return res.status(404).json({ message: "Hotel not found" });
     }
+
     return res.json({ hotel });
   } catch (err) {
     console.error("Error fetching hotel info:", err);
@@ -300,6 +302,32 @@ export const getRoomDetails = async (req, res) => {
   }
 };
 
+// ===================== Get Products ===========================
+
+export const getProductsByHotelId = async (req, res) => {
+  try {
+    const { hotelId } = req.query;
+
+    if (!hotelId) {
+      return res.status(400).json({ error: "Hotel ID is required" });
+    }
+
+    const hotel = await prisma.hotel.findUnique({
+      where: { id: hotelId },
+      select: { products: true }, // Only fetch the products field
+    });
+
+    if (!hotel) {
+      return res.status(404).json({ error: "Hotel not found" });
+    }
+
+    // products is stored as JSON array in hotel record
+    return res.status(200).json({ products: hotel.products || [] });
+  } catch (error) {
+    console.error("Error fetching hotel products:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
 // =================== Get Available Upgrades ===================
 export const getAvailableUpgrades = async (req, res) => {
   try {

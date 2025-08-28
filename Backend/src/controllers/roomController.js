@@ -90,7 +90,8 @@ export const getRoomsWithUnits = async (req, res) => {
         roomNumber: true,
         floor: true,
         status: true,
-        room: true // ✅ return all fields from the Room table
+        room: true, // ✅ return all fields from the Room table
+        cleaningStatus: true
       },
       orderBy: {
         roomNumber: 'asc'

@@ -5,7 +5,7 @@ import multer from "multer";
 import { fileURLToPath } from "url";
 import { PrismaClient } from "@prisma/client";
 import { auth, authorizeRoles } from "../middleware/auth.js";
-import { createHotel, getAvailableUpgrades } from "../controllers/hotelContoller.js";
+import { createHotel, getAvailableUpgrades, getProductsByHotelId } from "../controllers/hotelContoller.js";
 import { getRoomTypes } from "../controllers/Reservation/roomType.js";
 import { getRatePlans } from "../controllers/Reservation/getRatePlans.js";
 import { getRoomCount } from "../controllers/Reservation/noOfRooms.js";
@@ -21,13 +21,21 @@ import { downloadHotelPolicy } from '../controllers/hotelContoller.js';
 import { getSavedForm, saveForm } from "../controllers/formController.js";
 import { getHotelKPI } from "../controllers/Revenue/revenueController.js";
 import { getAllRooms } from "../controllers/hotelContoller.js";
+import { HOTEL_ROLES } from "../utils/roles.js";
 import { getRoomDetails } from "../controllers/hotelContoller.js";
+import { createSchedule, getSchedules } from "../controllers/tickets/preventiveController.js"
+import { createTicket, getTickets, getTicketById, assignTechnician, updateTicketStatus } from "../controllers/tickets/ticketsController.js"
+import { getTechnicians, createTechnician } from '../controllers/tickets/techniciansController.js'
 import { 
   generateRateTemplate, 
   uploadRates, 
   getRates 
 } from "../controllers/rateController.js";
-
+import { staffUser } from "../controllers/staffUser.js";
+import { emitRoomCleaningStatusUpdated } from "../utils/websocketEvents.js";
+import { createEquipment, getEquipments } from "../controllers/tickets/euiqmentController.js";
+import { getEnergyConsumption } from "../controllers/tickets/getEnergyConsumption.js";
+import { getQuotations } from "../controllers/sales/quotationController.js";
 const prisma = new PrismaClient();
 const router = express.Router();
 
@@ -79,23 +87,119 @@ router.post('/upload-room-images', auth, authorizeRoles('HOTELADMIN'), upload.ar
 router.post('/save-form',auth, authorizeRoles('HOTELADMIN'),saveForm);
 router.get('/get-saved-form',auth,authorizeRoles('HOTELADMIN'),getSavedForm);
 
-router.get('/me', auth, authorizeRoles('HOTELADMIN'), async (req, res) => {
+router.get('/me', auth, authorizeRoles('HOTELADMIN','Front Office'), async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
       include: { hotel: true },
     });
 
-    if (!user?.hotel) return res.status(404).json({ error: "Hotel not found" });
+    if (user && user.hotel) {
+      return res.json({ hotel: user.hotel });
+    }
 
-    res.json({ hotel: user.hotel });
+    const staffUser = await prisma.staffUser.findFirst({
+      where: { id: req.user.id },
+      include: { hotel: true },
+    });
+
+    if (staffUser && staffUser.hotel) {
+      return res.json({ hotel: staffUser.hotel });
+    }
+
+    return res.status(404).json({ error: "Hotel not found" });
+
   } catch (err) {
     console.error("Error fetching hotel profile:", err);
     res.status(500).json({ error: "Failed to fetch hotel profile" });
   }
 });
 
-router.get('/available-upgrades', auth, authorizeRoles('HOTELADMIN'), getAvailableUpgrades);
+
+router.get("/products", auth, authorizeRoles(...HOTEL_ROLES),getProductsByHotelId);
+
+router.get('/available-upgrades', auth, authorizeRoles(...HOTEL_ROLES), getAvailableUpgrades);
+
+/* ===================== Sales Routes ==================== */
+// Get leads
+router.get("/leads", auth, authorizeRoles(...HOTEL_ROLES), async (req, res) => {
+  try {
+    const leads = await prisma.lead.findMany({
+      where: { hotelId: req.user.hotelId },
+      orderBy: { createdAt: "desc" },
+    });
+    res.json(leads);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching leads", error: err.message });
+  }
+});
+
+// Create lead with auto enquiryId
+router.post("/leads", auth, authorizeRoles(...HOTEL_ROLES), async (req, res) => {
+  try {
+    const { name, source, staff, status, contactEmail, contactPhone, notes } = req.body;
+
+    // 🔹 Find last lead for this hotel
+    const lastLead = await prisma.lead.findFirst({
+      where: { hotelId: req.user.hotelId },
+      orderBy: { createdAt: "desc" },
+      select: { enquiryId: true },
+    });
+
+    // 🔹 Generate next enquiryId
+    let nextNumber = 1;
+    if (lastLead?.enquiryId) {
+      const lastNumber = parseInt(lastLead.enquiryId.replace("ENQ-", ""), 10);
+      nextNumber = lastNumber + 1;
+    }
+    const enquiryId = `ENQ-${String(nextNumber).padStart(4, "0")}`;
+
+    // 🔹 Create lead
+    const lead = await prisma.lead.create({
+      data: {
+        enquiryId,
+        name,
+        source,
+        staff,
+        status: status || "Open",
+        contactEmail,
+        contactPhone,
+        notes,
+        hotelId: req.user.hotelId, // ✅ from token
+      },
+    });
+
+    res.status(201).json(lead);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error creating lead", error: err.message });
+  }
+});
+router.delete(
+  "/leads/:id",
+  auth,
+  authorizeRoles(...HOTEL_ROLES),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      // Ensure the lead belongs to the same hotel as the user
+      const lead = await prisma.lead.findUnique({ where: { id } });
+      if (!lead || lead.hotelId !== req.user.hotelId) {
+        return res.status(404).json({ message: "Lead not found" });
+      }
+
+      await prisma.lead.delete({ where: { id } });
+
+      res.json({ message: "Lead deleted successfully", id });
+    } catch (err) {
+      res
+        .status(500)
+        .json({ message: "Error deleting lead", error: err.message });
+    }
+  }
+);
+router.post("/quotations", auth, authorizeRoles('HOTELADMIN'), getQuotations);
 
 /* ===================== Rate Routes ==================== */
 const rateUpload = multer({ 
@@ -133,10 +237,7 @@ router.post('/rates/upload',
   auth,authorizeRoles('HOTELADMIN'),rateUpload.single('file'),uploadRates);
 router.get('/rates/:rateType', auth, authorizeRoles('HOTELADMIN'), getRates);
 router.post('/rates/test-upload', auth, authorizeRoles('HOTELADMIN'), (req, res) => {
-  console.log('TEST UPLOAD ROUTE HIT');
-  console.log('Request headers:', req.headers);
-  console.log('Request body keys:', Object.keys(req.body || {}));
-  console.log('Request file:', req.file);
+
   
   res.json({ success: true, message: 'Test route reached' });
 });
@@ -146,7 +247,41 @@ router.post('/rates/test-upload', auth, authorizeRoles('HOTELADMIN'), (req, res)
 router.post('/reservation/create', auth, authorizeRoles('HOTELADMIN'), upload.single('photo'), createReservation);
 router.put('/reservation/update/:id', auth, authorizeRoles('HOTELADMIN'), updateReservation);
 router.delete('/reservation/delete/:id', auth, authorizeRoles('HOTELADMIN'), deleteReservation);
-router.get('/getreservations', auth, authorizeRoles('HOTELADMIN'), getRes);
+router.get('/getreservations', auth, authorizeRoles('HOTELADMIN','Front Office'), getRes);
+
+/* ======================== Cleaning status ======================== */
+// in hotelRoutes.js (or controller)
+
+router.patch("/room-units/:id/cleaning-status", async (req, res) => {
+  const { id } = req.params;
+  const { cleaningStatus } = req.body;
+
+  if (!cleaningStatus) {
+    return res.status(400).json({ error: "cleaningStatus is required" });
+  }
+
+  try {
+    const updatedRoom = await prisma.roomUnit.update({
+      where: { id },
+      data: { cleaningStatus },
+      include: {
+        room: true,
+        hotel: { select: { id: true } }, // fetch hotel id for socket room
+      },
+    });
+
+    const io = req.app.get('io');
+    if (io && updatedRoom.hotelId) {
+      emitRoomCleaningStatusUpdated(io, updatedRoom.hotelId, updatedRoom);
+    }
+
+    return res.json({ success: true, room: updatedRoom });
+  } catch (error) {
+    console.error("Error updating cleaning status:", error);
+    return res.status(500).json({ error: "Failed to update cleaning status" });
+  }
+});
+
 
 /* ======================== Room Routes ======================== */
 router.get('/room-types', auth, authorizeRoles('HOTELADMIN'), getRoomTypes);
@@ -154,7 +289,7 @@ router.get('/rate-plans', auth, authorizeRoles('HOTELADMIN'), getRatePlans);
 router.get('/count', auth, authorizeRoles('HOTELADMIN'), getRoomCount);
 router.get('/maxguests', auth, authorizeRoles('HOTELADMIN'), maxGuests);
 router.get('/available-rooms', auth, authorizeRoles('HOTELADMIN'), getAvailableRoomNumbers);
-router.get('/rooms-with-units', auth, authorizeRoles('HOTELADMIN'), getRoomsWithUnits);
+router.get('/rooms-with-units', auth, authorizeRoles('HOTELADMIN','Front Office'), getRoomsWithUnits);
 router.get('/roomunits', auth, authorizeRoles('HOTELADMIN'), getAllRoomUnits);
 router.put('/roomunits/:id/status', auth, authorizeRoles('HOTELADMIN'), updateRoomUnitStatus);
 router.get('/room-count', auth, authorizeRoles('HOTELADMIN'), getRoomCounts);
@@ -168,6 +303,24 @@ router.get(
   authorizeRoles("HOTELADMIN"),
   downloadHotelPolicy
 );
+/* ======================== Maintenance Ticket ======================== */
+router.post('/tickets',auth,authorizeRoles('HOTELADMIN'), createTicket);           // create
+router.get('/tickets',auth,authorizeRoles('HOTELADMIN'), getTickets);              // list
+router.get('/tickets:id',auth,authorizeRoles('HOTELADMIN'), getTicketById);        // single
+router.post('/tickets/:id/assign',auth,authorizeRoles('HOTELADMIN'), assignTechnician); // assign technician { technicianId }
+router.post('/tickets/:id/status',auth,authorizeRoles('HOTELADMIN'), updateTicketStatus); // update status { status }
+router.get('/',auth,authorizeRoles('HOTELADMIN'), getTechnicians);
+router.post('/',auth,authorizeRoles('HOTELADMIN'), createTechnician);
+
+router.post('/euipments', auth,authorizeRoles('HOTELADMIN'), createEquipment); // Create equipment
+router.get('/equipments',auth,authorizeRoles('HOTELADMIN'),  getEquipments);  
+
+router.post('/schedules', createSchedule);
+router.get('/schedules', getSchedules);
+
+router.get('/energy' ,auth, authorizeRoles('HOTELADMIN'),getEnergyConsumption)
+/* ======================== User Routes ======================== */
+router.post("/create-role-user",auth,authorizeRoles('HOTELADMIN'),staffUser);
 /* ======================== Revenue Routes ======================== */
 router.get("/kpi/:hotelId", getHotelKPI);
 router.get("/rooms", auth, authorizeRoles('HOTELADMIN'),getRoomDetails);
