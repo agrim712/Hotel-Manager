@@ -1,5 +1,5 @@
 import express from 'express';
-import { createOrder, verifyPayment } from '../controllers/paymentController.js';
+import { createOrder, verifyPayment, getAllPlans } from '../controllers/paymentController.js';
 import { auth, authorizeRoles } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -16,6 +16,12 @@ router.post(
   auth,
   authorizeRoles('HOTELADMIN'),
   verifyPayment
+);
+router.get(
+  "/all-plans",
+  auth,
+  authorizeRoles("HOTELADMIN"),
+  getAllPlans
 );
 
 export default router;

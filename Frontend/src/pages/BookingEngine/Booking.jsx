@@ -22,8 +22,7 @@ const HomePage = () => {
   const hotelAddress = hotel?.operationalAddress || hotel?.registeredAddress || "123 Luxury Avenue, City";
   const checkInTime = hotel?.checkInTime || "14:00";
   const checkOutTime = hotel?.checkOutTime || "12:00";
-  
-  // Default images if none are provided
+
   const defaultImages = [
     'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
     'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',

@@ -26,8 +26,6 @@ import RoomsView from './pages/PMS/RoomsView';
 import OnboardedHotels from './pages/SuperAdmin/OnboardedHotels';
 import './index.css';
 import { ReservationProvider } from './context/ReservationContext';
-import RestaurantManagement from './pages/Resturant/Resturant_dashboard';
-import MenuBuilder from './pages/Resturant/MenuBuilder';
 import SpaManagement from './pages/SPA/Spa_Dashboard';
 import BarManagement from './pages/Bar/Bar_Dashboard';
 import SpaMenuManager from './pages/SPA/Spa_menu_builder';
@@ -39,7 +37,6 @@ import RateManagement from './pages/PMS/RateManagement';
 import ExpenseManager from './pages/PMS/ExpenseManager';
 import RevenueManagement from './pages/PMS/RevenueManagement'
 import { ProductProvider, useProductContext } from "./context/ProductAccessContext";
-// In your axios configuration file or App.js
 import axios from 'axios';
 import HousekeepingDashboard from './pages/PMS/HouseKeeping';
 import OperationsDashboard from './pages/PMS/OperationsDashboard';
@@ -50,65 +47,116 @@ import EmployeeForm from './pages/PMS/EmployeeForm';
 import AccountingDashboard from './pages/PMS/Accounting';
 import FolioCreation from './pages/PMS/CustomerFolio';
 
+// Import POS Components
+import POSDashboard from './pages/POS/POSDashboard';
+import OrderManagement from './pages/POS/OrderManagement';
+import TableManagement from './pages/POS/TableManagement';
+import KitchenDisplaySystem from './pages/POS/KitchenDisplaySystem';
+import InventoryManagement from './pages/POS/InventoryManagement';
+import MenuCreation from './pages/POS/MenuCreation';
+
 axios.defaults.baseURL = 'http://localhost:5000';
+
 const ProductRoutes = () => {
   const { products } = useProductContext();
 
+  // ✅ FIX: use "name" instead of "value"
   const hasProduct = (key) => {
-    return products.some(p => p?.value === key);
+    const found = products?.some(p => p?.name === key);
+    console.log("🔎 Checking product:", key, "->", found, "Products:", products);
+    return found;
   };
+
+  // Helper functions for product groups
+  const hasAnyPMS = () => hasProduct("Starter PMS") || hasProduct("Pro PMS") || hasProduct("Enterprise PMS") || hasProduct("All-in-One PMS");
+  const hasProOrEnterprisePMS = () => hasProduct("Pro PMS") || hasProduct("Enterprise PMS") || hasProduct("All-in-One PMS");
+  const hasEnterprisePMS = () => hasProduct("Enterprise PMS") || hasProduct("All-in-One PMS");
+  const hasRevenueSuite = () => hasProduct("Revenue Suite") || hasProduct("All-in-One PMS");
+  const hasBookingEngineSuite = () => hasProduct("Booking Engine Suite") || hasProduct("All-in-One PMS");
+  const hasPOSSuite = () => hasProduct("POS Suite") || hasProduct("All-in-One PMS");
 
   return (
     <Routes>
-      {hasProduct("PMS") && (
+      {/* Basic PMS Features - Available in all PMS tiers */}
+      {hasAnyPMS() && (
         <>
           <Route path="/pms" element={<PMS />} />
           <Route path="/pmss" element={<Pmss />}>
-            <Route path="reservation" element={<Reservation />} />
-            <Route path="reservation/create/regular" element={<CreateReservation />} />
             <Route path="stay-view" element={<StayViewPage />} />
             <Route path="rooms-view" element={<RoomsView />} />
-            <Route path="reports" element={<Reports />} />
-             <Route path="expenses" element={<ExpenseManager />} />
-             <Route path="housekeeping" element={<HousekeepingDashboard />} />
-             <Route path="operations" element={<OperationsDashboard />} />
-                   <Route path="hr" element={<EmployeeDirectory />} />
-      <Route path="hr/employee" element={<EmployeeForm />} />
-             <Route path="security" element={<SecurityManagement />} />
-             <Route path="sales" element={<SalesMarketing />} />
-             <Route path="accounting" element={<AccountingDashboard />} />
-             <Route path="folio" element={<FolioCreation />} />
+            <Route path="folio" element={<FolioCreation />} />
+            <Route path="guests" element={<GuestListHeader />} />
           </Route>
+        </>
+      )}
+
+      {/* Pro PMS and above features */}
+      {hasProOrEnterprisePMS() && (
+        <>
+          <Route path="/pmss/reservation" element={<Reservation />} />
+          <Route path="/pmss/reservation/create/regular" element={<CreateReservation />} />
           <Route path="/pmss/reservation/create/complimentary" element={<ComplimentaryReservation />} />
           <Route path="/pmss/reservation/create/outoforder" element={<OutOfOrderRoomForm />} />
           <Route path="/pmss/reservation/create/group" element={<GroupReservationForm />} />
-          <Route path="/pmss/guests" element={<GuestListHeader />} />
+          <Route path="/pmss/housekeeping" element={<HousekeepingDashboard />} />
+          <Route path="/pmss/expenses" element={<ExpenseManager />} />
+          <Route path="/pmss/reports" element={<Reports />} />
+        </>
+      )}
+
+      {/* Enterprise PMS and Revenue Suite features */}
+      {(hasEnterprisePMS() || hasRevenueSuite()) && (
+        <>
           <Route path="/pmss/rate-management" element={<RateManagement />} />
           <Route path="/pmss/revenue-manager" element={<RevenueManagement />} />
+          <Route path="/pmss/operations" element={<OperationsDashboard />} />
+          <Route path="/pmss/sales" element={<SalesMarketing />} />
+          <Route path="/pmss/accounting" element={<AccountingDashboard />} />
+          <Route path="/pmss/security" element={<SecurityManagement />} />
+          <Route path="/pmss/hr" element={<EmployeeDirectory />} />
+          <Route path="/pmss/hr/employee" element={<EmployeeForm />} />
         </>
       )}
 
-      {hasProduct("Bar Management") && (
-        <Route path="/pmss/bar-management" element={<BarManagement />} />
-      )}
-
-      {hasProduct("Spa Management") && (
+      {/* POS Suite features */}
+      {hasPOSSuite() && (
         <>
+          <Route path="/pmss/bar-management" element={<BarManagement />} />
           <Route path="/pmss/spa-management" element={<SpaManagement />} />
           <Route path="/spa/edit-menu" element={<SpaMenuManager />} />
+          {/* Comprehensive POS Routes */}
+          <Route path="/pos" element={<POSDashboard />} />
+          <Route path="/pos/dashboard" element={<POSDashboard />} />
+          <Route path="/pos/orders" element={<OrderManagement />} />
+          <Route path="/pos/orders/new" element={<OrderManagement />} />
+          <Route path="/pos/tables" element={<TableManagement />} />
+          <Route path="/pos/kitchen" element={<KitchenDisplaySystem />} />
+          <Route path="/pos/inventory" element={<InventoryManagement />} />
+          <Route path="/pos/menu" element={<MenuCreation />} />
+          
+          {/* Restaurant POS Routes */}
+          <Route path="/restaurant/pos" element={<POSDashboard />} />
+          <Route path="/restaurant/pos/dashboard" element={<POSDashboard />} />
+          <Route path="/restaurant/pos/orders" element={<OrderManagement />} />
+          <Route path="/restaurant/pos/tables" element={<TableManagement />} />
+          <Route path="/restaurant/pos/kitchen" element={<KitchenDisplaySystem />} />
+          <Route path="/restaurant/pos/inventory" element={<InventoryManagement />} />
+          <Route path="/restaurant/pos/menu" element={<MenuCreation />} />
         </>
       )}
 
-      {hasProduct("Restaurant Management") && (
+      {/* Booking Engine Suite features */}
+      {hasBookingEngineSuite() && (
         <>
-          <Route path="/pmss/restaurant-management" element={<RestaurantManagement />} />
-          <Route path="/restaurant/edit-menu" element={<MenuBuilder />} />
+          <Route path="/booking-engine" element={<HomePage />} />
+          <Route path="/booking-engine/:hotelId" element={<HomePage />} />
+          <Route path="/booking-engine/search" element={<SearchResultsPage />} />
+          <Route path="/booking-engine/:hotelId/room" element={<RoomDetailPage />} />
         </>
       )}
     </Routes>
   );
 };
-
 
 const AppRoutes = () => {
   const { loading, isLoggedIn, userRole, logout } = useAuth();
@@ -132,10 +180,8 @@ const AppRoutes = () => {
             <Route path="/contact" element={<Contact />} />
             <Route path="/onboard" element={<Onboard />} />
             <Route path="/login" element={<Login />} />
-  <Route path="/booking-engine" element={<HomePage />} />
-  <Route path="/booking-engine/:hotelId" element={<HomePage />} />
-  <Route path="/booking-engine/search" element={<SearchResultsPage />} />
-  <Route path="/booking-engine/:hotelId/room" element={<RoomDetailPage />} />
+            <Route path="/payment" element={<Payment />} />
+            
             <Route
               path="/superadmin-dashboard"
               element={
@@ -146,7 +192,6 @@ const AppRoutes = () => {
             />
 
             <Route path="/onboarded-hotels" element={<OnboardedHotels />} />
-            <Route path="/payment" element={<Payment />} />
             <Route path="/create-hotel-admin" element={<CreateHotelAdmin />} />
 
             <Route
@@ -168,10 +213,10 @@ const AppRoutes = () => {
 
 const App = () => (
   <AuthProvider>
-  <RoomProvider>
-    <AppRoutes />
-  </RoomProvider>
-</AuthProvider>
+    <RoomProvider>
+      <AppRoutes />
+    </RoomProvider>
+  </AuthProvider>
 );
 
 export default App;

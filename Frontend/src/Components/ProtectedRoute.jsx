@@ -1,11 +1,7 @@
 import { Navigate } from "react-router-dom";
 import { useProductContext } from "../context/ProductAccessContext";
 
-/**
- * Props:
- * - allowedRoles: array of allowed user roles (e.g., ["SUPERADMIN", "HOTELADMIN"])
- * - requiredProduct: optional string, e.g., "PMS", "SPA", "BAR"
- */
+
 const ProtectedRoute = ({ children, allowedRoles, requiredProduct }) => {
   const token = localStorage.getItem("token");
   const userRole = localStorage.getItem("userRole");

@@ -1,7 +1,9 @@
-// src/controllers/roomCountController.js
-import { PrismaClient } from "@prisma/client";
+import pkg from "@prisma/client";
+const { PrismaClient } = pkg;
 
 const prisma = new PrismaClient();
+
+
 
 export const getRoomCount = async (req, res) => {
   const { roomType, rateType, checkIn, checkOut } = req.query;

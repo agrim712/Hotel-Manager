@@ -1,10 +1,5 @@
-
-import { PrismaClient } from '@prisma/client';
 import pkg from '@prisma/client';
-const { RoomStatus } = pkg;
-
-
-
+const { PrismaClient, RoomStatus } = pkg;
 
 const prisma = new PrismaClient();
 
@@ -34,7 +29,7 @@ export const updateRoomUnitStatus = async (req, res, next) => {
         room: {
           select: {
             id: true,
-            name: true  // Use actual fields from your Room model
+            name: true
           }
         }
       }
@@ -59,7 +54,7 @@ export const updateRoomUnitStatus = async (req, res, next) => {
         room: {
           select: {
             id: true,
-            name: true  // Use actual fields from your Room model
+            name: true
           }
         }
       }

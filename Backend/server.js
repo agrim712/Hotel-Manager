@@ -3,13 +3,14 @@ import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import { PrismaClient } from '@prisma/client';
+import pkg from '@prisma/client';
+const { PrismaClient } = pkg;
 import authRoutes from './src/routes/authRoutes.js';
 import { errorHandler } from './src/middleware/errorHandler.js';
 import createSuperAdmin from './src/utils/initialSetup.js';
 import hotelRoutes from './src/routes/hotelRoutes.js';
 import paymentRoutes from './src/routes/paymentRoutes.js';
-import RestaurantRoutes from './src/routes/RestaurantRoutes.js';
+import posRoutes from './src/routes/posRoutes.js';
 import Superadmin from "./src/routes/Superadmin.js";
 import cron from 'node-cron';
 import expenseRoutes from './src/routes/expenseRoutes.js';
@@ -19,8 +20,9 @@ import { updateRoomUnitStatus } from './src/controllers/Reservation/changeStatus
 import path from 'path';
 
 const app = express();
-const server = createServer(app);
 
+
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 // Initialize Prisma Client
 const prisma = new PrismaClient();
 
@@ -37,6 +39,9 @@ app.use(express.urlencoded({ extended: true }));
 // Static Files
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
+// Create HTTP server
+const server = createServer(app);
+
 // WebSocket Setup
 const io = new Server(server, {
   cors: {
@@ -52,7 +57,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/hotel', hotelRoutes); // Only register once!
 app.use('/api/expense', expenseRoutes);
-app.use('/api/menu', RestaurantRoutes);
+app.use('/api/pos', posRoutes);
 app.use("/api/superadmin", Superadmin);
 app.use("/api", pricing);
 // Health Check

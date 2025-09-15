@@ -1,5 +1,6 @@
 // controllers/billController.js
-import { PrismaClient } from '@prisma/client';
+import pkg from '@prisma/client';
+const { PrismaClient } = pkg;
 import PDFDocument from 'pdfkit';
 
 const prisma = new PrismaClient();

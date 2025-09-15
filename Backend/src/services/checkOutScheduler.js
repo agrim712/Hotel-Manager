@@ -1,5 +1,6 @@
 import schedule from 'node-schedule';
-import { PrismaClient } from '@prisma/client';
+import pkg from '@prisma/client';
+const { PrismaClient } = pkg;
 import { emitRoomStatusUpdate } from '../utils/socketEmitters.js';
 
 const prisma = new PrismaClient();

@@ -1,4 +1,7 @@
-import { PrismaClient } from "@prisma/client";
+import pkg from "@prisma/client";
+const { PrismaClient } = pkg;
+
+
 import { body, validationResult } from 'express-validator';
 import rateLimit from 'express-rate-limit';
 
@@ -28,10 +31,10 @@ export const saveForm = [
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { data, currentSection, uploadedFiles } = req.body;
+      const { data, currentSection } = req.body;
       
       const userId = req.user.id;
-      console.log("Received data to save:", { userId, data, currentSection, uploadedFiles });
+      console.log("Received data to save:", { userId, data, currentSection });
 
 
       // Upsert the saved form data
@@ -40,13 +43,11 @@ export const saveForm = [
         update: { 
           formData: data,
           currentSection,
-          uploadedFiles: uploadedFiles || {}
         },
         create: {
           userId,
           formData: data,
           currentSection,
-          uploadedFiles: uploadedFiles || {}
         }
       });
       console.log("Data saved in DB:", savedForm);

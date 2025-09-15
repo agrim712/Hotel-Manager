@@ -1,6 +1,8 @@
-import { PrismaClient } from '@prisma/client';
+import pkg from '@prisma/client';
+
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+const { PrismaClient } = pkg;
 
 const prisma = new PrismaClient();
 
@@ -9,14 +11,12 @@ const SUPERADMIN_EMAIL = 'superadmin@asyncotel.com';
 const SUPERADMIN_PASSWORD = 'Admin@1234';
 const PASSWORD_MIN_LENGTH = 8;
 
-// Helper functions
 const validatePassword = (password) => {
   if (password.length < PASSWORD_MIN_LENGTH) {
     throw new Error(`Password must be at least ${PASSWORD_MIN_LENGTH} characters`);
   }
 };
 
-// SUPERADMIN LOGIN
 export const login = async (req, res) => {
   const { email, password, role } = req.body;
 
@@ -60,8 +60,7 @@ export const login = async (req, res) => {
       });
     }
 
-    // --- HOTELADMIN Login ---
-// --- HOTELADMIN Login ---
+
 if (role === 'HOTELADMIN') {
   // 1. Try regular hotel admin login
   const user = await prisma.user.findFirst({

@@ -1,7 +1,11 @@
-import { PrismaClient } from '@prisma/client';
+import pkg from '@prisma/client';
+const { PrismaClient } = pkg;
 import path from 'path';
 import fs from 'fs';
 import PDFDocument from "pdfkit";
+import jwt from 'jsonwebtoken';
+
+
 
 const prisma = new PrismaClient();
 const ALL_MODULES = [
@@ -14,379 +18,617 @@ const ALL_MODULES = [
     { value: "Cab/Travel Management", label: "Cab/Travel Management" },
     { label: "All in One", value: "All in One"}
   ];
-
-
-// Helper function to save files locally
-
-
-export const createHotel = async (req, res) => {
-  try {
-    const { body } = req;
-    // Find the existing default hotel entry
-    const existingHotel = await prisma.hotel.findFirst({
-      where: {
-        email: body.email // Using email as the unique identifier
+  export const createHotel = async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized: User not found." });
       }
-    });
-
-    if (!existingHotel) {
-      return res.status(404).json({ error: "Default hotel entry not found" });
-    }
-
-    // Prepare update data - only update fields that are provided in the form
-    const updateData = {
-      // Basic Information
-      name: body.name || existingHotel.name,
-      brandAffiliation: body.brandAffiliation || existingHotel.brandAffiliation,
-      category: body.category || existingHotel.category,
-      registeredAddress: body.registeredAddress || existingHotel.registeredAddress,
-      operationalAddress: body.operationalAddress || existingHotel.operationalAddress,
-      
-      // Location Information
-      country: body.country || existingHotel.country,
-      state: body.state || existingHotel.state,
-      city: body.city || existingHotel.city,
-      pinCode: body.pinCode || existingHotel.pinCode,
-      timeZone: body.timeZone || existingHotel.timeZone,
-      preferredLanguage: body.preferredLanguage || existingHotel.preferredLanguage,
-      
-      // Contact Information
-      contactPerson: body.contactPerson || existingHotel.contactPerson,
-      phoneCode: body.phoneCode || existingHotel.phoneCode,
-      phoneNumber: body.phoneNumber || existingHotel.phoneNumber,
-      whatsappNumber: body.whatsappNumber || existingHotel.whatsappNumber,
-      email: body.email || existingHotel.email,
-      website: body.website || existingHotel.website,
-      googleMapsLink: body.googleMapsLink || existingHotel.googleMapsLink,
-
-      // Property Details
-      totalRooms: body.totalRooms ? Number(body.totalRooms) : existingHotel.totalRooms,
-      propertyType: body.propertyType || existingHotel.propertyType,
-      currency: body.currency || existingHotel.currency,
-
-      // Government & Tax Details
-      panNumber: body.panNumber || existingHotel.panNumber,
-      gstin: body.gstin || existingHotel.gstin,
-      fssaiLicense: body.fssaiLicense || existingHotel.fssaiLicense,
-      fireSafetyCert: body.fireSafetyCert || existingHotel.fireSafetyCert,
-      tradeLicense: body.tradeLicense || existingHotel.tradeLicense,
-      alcoholLicense: body.alcoholLicense || existingHotel.alcoholLicense,
-      tourismRegistration: body.tourismRegistration || existingHotel.tourismRegistration,
-      companyRegistration: body.companyRegistration || existingHotel.companyRegistration,
-
-      // Operations
-      checkInTime: body.checkInTime || existingHotel.checkInTime,
-      checkOutTime: body.checkOutTime || existingHotel.checkOutTime,
-      earlyCheckInPolicy: body.earlyCheckInPolicy || existingHotel.earlyCheckInPolicy,
-      lateCheckOutPolicy: body.lateCheckOutPolicy || existingHotel.lateCheckOutPolicy,
-      cancellationPolicy: body.cancellationPolicy || existingHotel.cancellationPolicy,
-      noShowPolicy: body.noShowPolicy || existingHotel.noShowPolicy,
-
-      // Accounting
-      invoiceFormat: body.invoiceFormat || existingHotel.invoiceFormat,
-      paymentModes: body.paymentModes || existingHotel.paymentModes,
-
-      // OTA
-      otas: body.otas || existingHotel.otas,
-      channelManager: body.channelManager || existingHotel.channelManager,
-      bookingEngine: body.bookingEngine || existingHotel.bookingEngine,
-
-      // Products
-      products: body.products || existingHotel.products,
-
-      // Documents
-      logoPath: body.logoPath || existingHotel.logoPath,
-      panCardPath: body.panCardPath || existingHotel.panCardPath,
-      gstCertPath: body.gstCertPath || existingHotel.gstCertPath,
-      tradeLicensePath: body.tradeLicensePath || existingHotel.tradeLicensePath,
-      fireSafetyCertPath: body.fireSafetyCertPath || existingHotel.fireSafetyCertPath,
-      fssaiLicensePath: body.fssaiLicensePath || existingHotel.fssaiLicensePath,
-      cancelledChequePath: body.cancelledChequePath || existingHotel.cancelledChequePath,
-      idProofPath: body.idProofPath || existingHotel.idProofPath,
-      propertyImages: body.propertyImages || existingHotel.propertyImages,
-      
-      // Mark as completed
-      isPaymentDone: true // Assuming payment is done when form is submitted
-    };
-
-    // Use transaction for atomic operations
-    const result = await prisma.$transaction(async (tx) => {
-      // Update the hotel
-      const updatedHotel = await tx.hotel.update({
-        where: { id: existingHotel.id },
-        data: updateData,
-      });
-
-      // Delete existing bank accounts and rooms if they exist
-      await tx.bankAccount.deleteMany({ where: { hotelId: existingHotel.id } });
-      await tx.room.deleteMany({ where: { hotelId: existingHotel.id } });
-
-      // Create new bank accounts if provided
-      if (body.bankAccounts && Array.isArray(body.bankAccounts)) {
-        await tx.bankAccount.createMany({
-          data: body.bankAccounts.map(account => ({
-            accountHolderName: account.accountHolderName || '',
-            bankName: account.bankName || '',
-            accountNumber: account.accountNumber || '',
-            ifscCode: account.ifscCode || '',
-            accountType: account.accountType || 'Savings',
-            branch: account.branch || '',
-            hotelId: existingHotel.id
-          }))
-        });
-      }
-
-      // Create new rooms if provided
-      if (body.rooms && Array.isArray(body.rooms)) {
-        for (const room of body.rooms) {
-          const createdRoom = await tx.room.create({
-            data: {
-              name: room.name || '',
-              numOfRooms: Number(room.numOfRooms) || 0,
-              maxGuests: Number(room.maxGuests) || 0,
-              rateType: room.rateType || null,
-              rate: Number(room.rate) || 0,
-              extraAdultRate: Number(room.extraAdultRate) || 0,
-              roomNumbers: Array.isArray(room.roomNumbers) ? room.roomNumbers : [],
-              amenities: room.amenities || null,
-              smoking: room.smoking || "non-smoking",
-              extraBedPolicy: room.extraBedPolicy || null,
-              childPolicy: room.childPolicy || null,
-              roomImages: Array.isArray(room.roomImages) ? room.roomImages : [],
-              hotelId: existingHotel.id
-            }
-          });
-          // Create RoomUnit entries for each room number
-if (Array.isArray(room.roomNumbers)) {
-  for (const rn of room.roomNumbers) {
-    const [floor, number] = rn.split("-"); // assuming format "floor-roomNumber"
-    await tx.roomUnit.create({
-      data: {
-        roomId: createdRoom.id,
-        floor: floor || null,
-        roomNumber: number || rn, // fallback to full string if splitting fails
-        hotelId: existingHotel.id
-      }
-    });
-  }
-}
+  
+      // 1. Parse JSON fields if needed
+      const parsedBody = { ...req.body };
+      const fieldsToParse = ['bankAccounts', 'rooms', 'products', 'amenities', 'paymentModes', 'otas'];
+      fieldsToParse.forEach(field => {
+        if (req.body[field] && typeof req.body[field] === 'string') {
+          try {
+            parsedBody[field] = JSON.parse(req.body[field]);
+          } catch (e) {
+            console.error(`Failed to parse JSON for field ${field}:`, e);
+            parsedBody[field] = [];
+          }
         }
-      }
-
-      return updatedHotel;
-    });
-
-    return res.status(200).json({
-      message: "Hotel updated successfully",
-      hotel: result
-    });
-
-  } catch (err) {
-    console.error("Hotel update error:", err);
-    return res.status(500).json({
-      error: "Server error",
-      details: err.message
-    });
-  }
-};
-
-// =================== Get Logged In Hotel Info ===================
-export const getHotelMe = async (req, res) => {
+      });
+  
+      const hotelResult = await prisma.$transaction(async (tx) => {
+        // Step A: Create main hotel
+        const hotel = await tx.hotel.create({
+          data: {
+            name: parsedBody.name,
+            brandAffiliation: parsedBody.brandAffiliation,
+            category: parsedBody.category,
+            registeredAddress: parsedBody.registeredAddress,
+            operationalAddress: parsedBody.operationalAddress,
+            country: parsedBody.country,
+            state: parsedBody.state,
+            city: parsedBody.city,
+            pinCode: parsedBody.pinCode,
+            timeZone: parsedBody.timeZone,
+            preferredLanguage: parsedBody.preferredLanguage,
+            contactPerson: parsedBody.contactPerson,
+            phoneCode: parsedBody.phoneCode,
+            phoneNumber: parsedBody.phoneNumber,
+            whatsappNumber: parsedBody.whatsappNumber,
+            email: parsedBody.email,
+            website: parsedBody.website,
+            googleMapsLink: parsedBody.googleMapsLink,
+            totalRooms: parsedBody.totalRooms ? Number(parsedBody.totalRooms) : 0,
+            propertyType: parsedBody.propertyType,
+            currency: parsedBody.currency,
+            panNumber: parsedBody.panNumber,
+            gstin: parsedBody.gstin,
+            tourismRegistration: parsedBody.tourismRegistration,
+            companyRegistration: parsedBody.companyRegistration,
+            checkInTime: parsedBody.checkInTime,
+            checkOutTime: parsedBody.checkOutTime,
+            earlyCheckInPolicy: parsedBody.earlyCheckInPolicy,
+            lateCheckOutPolicy: parsedBody.lateCheckOutPolicy,
+            cancellationPolicy: parsedBody.cancellationPolicy,
+            noShowPolicy: parsedBody.noShowPolicy,
+            invoiceFormat: parsedBody.invoiceFormat,
+            paymentModes: parsedBody.paymentModes,
+            otas: parsedBody.otas,
+            channelManager: parsedBody.channelManager,
+            bookingEngine: parsedBody.bookingEngine,
+            products: Array.isArray(parsedBody.products) ? parsedBody.products : [],
+            isPaymentDone: false,
+          },
+        });
+  
+        // Step B: Rooms
+        const createdRooms = [];
+        if (Array.isArray(parsedBody.rooms)) {
+          for (const room of parsedBody.rooms) {
+            const createdRoom = await tx.room.create({
+              data: {
+                name: room.name,
+                numOfRooms: Number(room.numOfRooms) || 0,
+                maxGuests: Number(room.maxGuests) || 0,
+                rateType: room.rateType || "standard",
+                rate: Number(room.rate) || 0,
+                extraAdultRate: room.extraAdultRate ? Number(room.extraAdultRate) : null,
+                roomNumbers: Array.isArray(room.roomNumbers) ? room.roomNumbers : [],
+                amenities: room.amenities || [],
+                smoking: room.smoking || "non-smoking",
+                extraBedPolicy: room.extraBedPolicy || null,
+                childPolicy: room.childPolicy || null,
+                petPolicy: room.petPolicy || "Not Allowed",
+                hotelId: hotel.id,
+              },
+            });
+            createdRooms.push(createdRoom);
+          }
+        }
+  
+        // Step C: Files
+        if (req.files) {
+          const allFiles = Object.values(req.files).flat();
+          const filePaths = {};
+  
+          for (const file of allFiles) {
+            const timestamp = Date.now();
+            const uniqueFilename = `${timestamp}-${file.originalname}`;
+            const fileUrl = `${req.protocol}://${req.get("host")}/api/hotel/files/${uniqueFilename}`;
+  
+            if (req.files) {
+              for (const [field, files] of Object.entries(req.files)) {
+                const labelPrefix = fileNameMap[field] || field;
+            
+                for (const file of files) {
+                  const timestamp = Date.now();
+                  const extension = file.originalname.split(".").pop();
+                  const uniqueFilename = `${labelPrefix}-${timestamp}.${extension}`;
+                  const fileUrl = `${req.protocol}://${req.get("host")}/api/hotel/files/${uniqueFilename}`;
+                  const fileType = file.mimetype || extension;
+                
+                  await tx.propertyFiles.create({
+                    data: {
+                      altText: file.originalname, // keep original for reference
+                      hotelId: hotel.id,
+                      fileType,
+                      url:fileUrl
+                    },
+                  });
+                }
+              }
+            }
+          }
+  
+          // Update hotel doc paths if needed
+          if (Object.keys(filePaths).length > 0) {
+            await tx.hotel.update({
+              where: { id: hotel.id },
+              data: filePaths,
+            });
+          }
+        }
+  
+        // Step D: Bank Accounts
+        if (Array.isArray(parsedBody.bankAccounts)) {
+          await tx.bankAccount.createMany({
+            data: parsedBody.bankAccounts.map((acc) => ({
+              accountHolderName: acc.accountHolderName,
+              bankName: acc.bankName,
+              accountNumber: acc.accountNumber,
+              ifscCode: acc.ifscCode,
+              accountType: acc.accountType,
+              branch: acc.branch,
+              isPrimary: acc.isPrimary,
+              hotelId: hotel.id,
+            })),
+          });
+        }
+  
+        return tx.hotel.findUnique({
+          where: { id: hotel.id },
+          include: { propertyFiles: true, rooms: true, bankAccounts: true },
+        });
+      });
+  
+      // Link hotel to user
+      await prisma.user.update({
+        where: { id: userId },
+        data: { hotelId: hotelResult.id },
+      });
+  
+      const newToken = jwt.sign(
+        { userId, role: req.user.role, hotelId: hotelResult.id },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+  
+      return res.status(201).json({
+        message: "Hotel onboarded successfully!",
+        hotel: hotelResult,
+        token: newToken,
+      });
+    } catch (err) {
+      console.error("Hotel onboard error:", err);
+      return res.status(500).json({ error: "Server error", details: err.message });
+    }
+  };
+  
+  // controllers/hotelController.js
+export const getPropertyFilesByHotelId = async (req, res) => {
   try {
-    const user = req.user;
-
-    const hotelId = user?.hotelId;
+    const { hotelId } = req.params;
 
     if (!hotelId) {
-      return res.status(401).json({ message: "User not associated with any hotel" });
-    }
-
-    const hotel = await prisma.hotel.findUnique({
-      where: { id: hotelId },
-    });
-
-    if (!hotel) {
-      return res.status(404).json({ message: "Hotel not found" });
-    }
-
-    return res.json({ hotel });
-  } catch (err) {
-    console.error("Error fetching hotel info:", err);
-    return res.status(500).json({ message: "Server error" });
-  }
-};
-
-// =================== All Room Units ===================
-
-
-export const getAllRooms = async (req, res) => {
-  try {
-    const { hotelId } = req.query;
-    
-    const roomUnits = await prisma.roomUnit.findMany({
-      where: hotelId ? { hotelId } : undefined,
-      include: {
-        room: {
-          select: {
-            name: true,
-            rateType: true,
-            rate: true,
-            hotelId: true,
-          }
-        },
-        hotel: {
-          select: {
-            name: true,
-            city: true,
-            timeZone: true,
-          }
-        },
-        reservations: true,
-      }
-    });
-    
-    res.status(200).json({ success: true, data: roomUnits });
-  } catch (error) {
-    console.error("Error fetching room units:", error);
-    res.status(500).json({ success: false, message: "Failed to fetch room units." });
-  }
-};
-
-// =================== Room TABLE ===================
-export const getRoomDetails = async (req, res) => {
-  try {
-    const { hotelId } = req.query;
-
-
-    const room = await prisma.room.findUnique({
-      where: {
-        hotelId: hotelId
-      },
-      include: {
-        RoomUnit: {
-          include: {
-            reservations: true
-          }
-        },
-        hotel: {
-          select: {
-            name: true,
-            city: true,
-            checkInTime: true,
-            checkOutTime: true,
-            cancellationPolicy: true,
-            noShowPolicy: true
-          }
-        }
-      }
-    });
-
-    if (!room) {
-      return res.status(404).json({
+      return res.status(400).json({
         success: false,
-        error: 'Room not found'
+        message: "hotelId is required.",
       });
     }
+  
+    const propertyFiles = await prisma.propertyFiles.findMany({
+      where: { hotelId },
+      include: {
+      },
+      orderBy: { createdAt: "desc" },
+    });
 
-    res.json({
+    // Enrich each record with uploaded file details (if relation exists) and a derived prefix
+    const withFiles = await Promise.all(
+      propertyFiles.map(async (pf) => {
+        // Try to load uploadedFile if not already included
+        let uploadedFile = null;
+        try {
+          uploadedFile = await prisma.uploadedFile.findUnique({ where: { id: pf.uploadedFileId } });
+        } catch {}
+        const filename = uploadedFile?.filename || null;
+        const derivedPrefix = filename && filename.includes("-") ? filename.split("-")[0] : null;
+        return {
+          id: pf.id,
+          hotelId: pf.hotelId,
+          fileType: pf.fileType,
+          createdAt: pf.createdAt,
+          uploadedFileId: pf.uploadedFileId,
+          filename: uploadedFile?.filename || null,
+          originalName: uploadedFile?.originalName || null,
+          url: uploadedFile?.url || null,
+          path: uploadedFile?.path || null,
+          derivedPrefix,
+        };
+      })
+    );
+
+    return res.status(200).json({
       success: true,
-      data: room
+      count: withFiles.length,
+      data: withFiles,
+    });
+  } catch (error) {
+    console.error("Error fetching property files:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch property files",
+      error: error.message,
+    });
+  }
+};
+  export const updateHotel = async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const hotelId = req.user?.hotelId;
+  
+      if (!userId || !hotelId) {
+        return res.status(401).json({ error: "Unauthorized: User or Hotel not found." });
+      }
+  
+      // 1. Parse JSON fields if needed
+      const parsedBody = { ...req.body };
+      const fieldsToParse = ["bankAccounts", "rooms", "products", "amenities", "paymentModes", "otas"];
+      fieldsToParse.forEach((field) => {
+        if (req.body[field] && typeof req.body[field] === "string") {
+          try {
+            parsedBody[field] = JSON.parse(req.body[field]);
+          } catch (e) {
+            console.error(`Failed to parse JSON for field ${field}:`, e);
+            parsedBody[field] = [];
+          }
+        }
+      });
+  
+      const updatedHotel = await prisma.$transaction(async (tx) => {
+        // Step A: Update hotel fields
+        const hotel = await tx.hotel.update({
+          where: { id: hotelId },
+          data: {
+            name: parsedBody.name,
+            brandAffiliation: parsedBody.brandAffiliation,
+            category: parsedBody.category,
+            registeredAddress: parsedBody.registeredAddress,
+            operationalAddress: parsedBody.operationalAddress,
+            country: parsedBody.country,
+            state: parsedBody.state,
+            city: parsedBody.city,
+            pinCode: parsedBody.pinCode,
+            timeZone: parsedBody.timeZone,
+            preferredLanguage: parsedBody.preferredLanguage,
+            contactPerson: parsedBody.contactPerson,
+            phoneCode: parsedBody.phoneCode,
+            phoneNumber: parsedBody.phoneNumber,
+            whatsappNumber: parsedBody.whatsappNumber,
+            email: parsedBody.email,
+            website: parsedBody.website,
+            googleMapsLink: parsedBody.googleMapsLink,
+            totalRooms: parsedBody.totalRooms ? Number(parsedBody.totalRooms) : 0,
+            propertyType: parsedBody.propertyType,
+            currency: parsedBody.currency,
+            panNumber: parsedBody.panNumber,
+            gstin: parsedBody.gstin,
+            tourismRegistration: parsedBody.tourismRegistration,
+            companyRegistration: parsedBody.companyRegistration,
+            checkInTime: parsedBody.checkInTime,
+            checkOutTime: parsedBody.checkOutTime,
+            earlyCheckInPolicy: parsedBody.earlyCheckInPolicy,
+            lateCheckOutPolicy: parsedBody.lateCheckOutPolicy,
+            cancellationPolicy: parsedBody.cancellationPolicy,
+            noShowPolicy: parsedBody.noShowPolicy,
+            invoiceFormat: parsedBody.invoiceFormat,
+            paymentModes: parsedBody.paymentModes,
+            otas: parsedBody.otas,
+            channelManager: parsedBody.channelManager,
+            bookingEngine: parsedBody.bookingEngine,
+            products: Array.isArray(parsedBody.products) ? parsedBody.products : [],
+          },
+        });
+  
+        // Step B: Replace rooms
+        let createdRooms = [];
+        if (Array.isArray(parsedBody.rooms)) {
+          await tx.room.deleteMany({ where: { hotelId: hotel.id } });
+  
+          for (const room of parsedBody.rooms) {
+            const createdRoom = await tx.room.create({
+              data: {
+                name: room.name,
+                numOfRooms: Number(room.numOfRooms) || 0,
+                maxGuests: Number(room.maxGuests) || 0,
+                rateType: room.rateType || "standard",
+                rate: Number(room.rate) || 0,
+                extraAdultRate: room.extraAdultRate ? Number(room.extraAdultRate) : null,
+                roomNumbers: Array.isArray(room.roomNumbers) ? room.roomNumbers : [],
+                amenities: room.amenities || [],
+                smoking: room.smoking || "non-smoking",
+                extraBedPolicy: room.extraBedPolicy || null,
+                childPolicy: room.childPolicy || null,
+                petPolicy: room.petPolicy || "Not Allowed",
+                hotelId: hotel.id,
+              },
+            });
+            createdRooms.push(createdRoom);
+          }
+        }
+  
+        if (req.files) {
+          const fileNameMap = {}; // customize if needed
+          const filePaths = {};
+
+          // Case 1: req.files is an array (upload.array)
+          const allFiles = Array.isArray(req.files)
+            ? req.files
+            // Case 2: req.files is an object (upload.fields)
+            : Object.values(req.files).flat();
+
+          for (const file of allFiles) {
+            const field = file.fieldname;
+            const labelPrefix = fileNameMap[field] || field;
+
+            const timestamp = Date.now();
+            const extension = file.originalname.split(".").pop();
+            const uniqueFilename = `${labelPrefix}-${timestamp}.${extension}`;
+            const fileUrl = `${req.protocol}://${req.get("host")}/api/hotel/files/${uniqueFilename}`;
+            const fileType = file.mimetype || extension;
+            // Step 1: Save in UploadedFile
+          
+
+            // Step 2: Link via PropertyFiles
+            await tx.propertyFiles.create({
+              data: {
+                altText: file.originalname,
+                hotelId: hotel.id,
+                fileType,
+                url: fileUrl
+              },
+            });
+           
+          }
+
+          // Update hotel doc paths if needed
+          if (Object.keys(filePaths).length > 0) {
+            await tx.hotel.update({
+              where: { id: hotel.id },
+              data: filePaths,
+            });
+          }
+        }
+
+  
+        // Step D: Replace bank accounts
+        if (Array.isArray(parsedBody.bankAccounts)) {
+          await tx.bankAccount.deleteMany({ where: { hotelId: hotel.id } });
+          await tx.bankAccount.createMany({
+            data: parsedBody.bankAccounts.map((acc) => ({
+              accountHolderName: acc.accountHolderName,
+              bankName: acc.bankName,
+              accountNumber: acc.accountNumber,
+              ifscCode: acc.ifscCode,
+              accountType: acc.accountType,
+              branch: acc.branch,
+              isPrimary: acc.isPrimary,
+              hotelId: hotel.id,
+            })),
+          });
+        }
+  
+        return tx.hotel.findUnique({
+          where: { id: hotel.id },
+          include: { propertyFiles: true, rooms: true, bankAccounts: true },
+        });
+      });
+  
+      return res.status(200).json({
+        message: "Hotel details updated successfully!",
+        hotel: updatedHotel,
+      });
+    } catch (err) {
+      console.error("Hotel update error:", err);
+      return res.status(500).json({ error: "Server error", details: err.message });
+    }
+  };
+  
+  
+  
+export const getAllRooms = async (req, res) => {
+    try {
+        const hotelId = req.user?.hotelId;
+        if (!hotelId) {
+            return res.status(401).json({ success: false, message: "Unauthorized: No hotel associated with user." });
+        }
+
+        const roomUnits = await prisma.roomUnit.findMany({
+            where: { hotelId },
+            include: {
+                room: {
+                    select: { name: true, rateType: true, rate: true }
+                },
+                reservations: true,
+            }
+        });
+
+        res.status(200).json({ success: true, data: roomUnits });
+    } catch (error) {
+        console.error("Error fetching room units:", error);
+        res.status(500).json({ success: false, message: "Failed to fetch room units." });
+    }
+};
+
+export const getRoomDetails = async (req, res) => {
+    try {
+        // CORRECTED: Switched from query to params to get a specific room ID.
+        const { roomId } = req.params;
+        const hotelId = req.user?.hotelId;
+
+        if (!hotelId) {
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
+        }
+        if (!roomId) {
+            return res.status(400).json({ success: false, error: 'Room ID is required' });
+        }
+
+        const room = await prisma.room.findFirst({
+            where: {
+                id: roomId,
+                hotelId: hotelId
+            },
+            include: {
+                RoomUnit: {
+                    include: {
+                        reservations: true
+                    }
+                },
+                hotel: {
+                    select: {
+                        name: true,
+                        city: true,
+                        checkInTime: true,
+                        checkOutTime: true,
+                        cancellationPolicy: true,
+                        noShowPolicy: true
+                    }
+                }
+            }
+        });
+
+        if (!room) {
+            return res.status(404).json({ success: false, error: 'Room not found or access denied' });
+        }
+
+        res.json({ success: true, data: room });
+
+    } catch (error) {
+        console.error('Error fetching room details:', error);
+        res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+};
+
+// =================== Delete Property File ===================
+export const deletePropertyFile = async (req, res) => {
+  try {
+    const userHotelId = req.user?.hotelId;
+    const { id } = req.params; // propertyFiles id (route param is string)
+    const fileId = parseInt(id, 10);
+
+    if (!userHotelId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+    if (!id || Number.isNaN(fileId)) {
+      return res.status(400).json({ success: false, message: "File id is required" });
+    }
+
+    const propertyFile = await prisma.propertyFiles.findUnique({ where: { id: fileId } });
+    if (!propertyFile) {
+      return res.status(404).json({ success: false, message: "Property file not found" });
+    }
+    if (propertyFile.hotelId !== userHotelId) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
+
+    // Delete both the linking record and the uploaded file metadata
+    await prisma.$transaction(async (tx) => {
+      // Remove the link first
+      await tx.propertyFiles.delete({ where: { id: fileId } });
+      // Then remove the uploaded file if present
+      if (propertyFile.uploadedFileId) {
+        await tx.uploadedFile.delete({ where: { id: Number(propertyFile.uploadedFileId) } });
+      }
     });
 
+    return res.json({ success: true, id: fileId });
   } catch (error) {
-    console.error('Error fetching room details:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Internal server error'
-    });
+    console.error("Error deleting property file:", error);
+    return res.status(500).json({ success: false, message: "Failed to delete file" });
   }
 };
 
 // ===================== Get Products ===========================
-
 export const getProductsByHotelId = async (req, res) => {
-  try {
-    const { hotelId } = req.query;
+    try {
+        // CORRECTED: Use the authenticated user's hotelId.
+        const hotelId = req.user?.hotelId;
+        if (!hotelId) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
 
-    if (!hotelId) {
-      return res.status(400).json({ error: "Hotel ID is required" });
+        const hotel = await prisma.hotel.findUnique({
+            where: { id: hotelId },
+            select: { products: true },
+        });
+
+        if (!hotel) {
+            return res.status(404).json({ error: "Hotel not found" });
+        }
+
+        res.status(200).json({ products: hotel.products || [] });
+    } catch (error) {
+        console.error("Error fetching hotel products:", error);
+        res.status(500).json({ error: "Internal server error" });
     }
-
-    const hotel = await prisma.hotel.findUnique({
-      where: { id: hotelId },
-      select: { products: true }, // Only fetch the products field
-    });
-
-    if (!hotel) {
-      return res.status(404).json({ error: "Hotel not found" });
-    }
-
-    // products is stored as JSON array in hotel record
-    return res.status(200).json({ products: hotel.products || [] });
-  } catch (error) {
-    console.error("Error fetching hotel products:", error);
-    return res.status(500).json({ error: "Internal server error" });
-  }
 };
+
 // =================== Get Available Upgrades ===================
+// NOTE: This logic is correct. No changes needed.
 export const getAvailableUpgrades = async (req, res) => {
-  try {
-    const hotelId = req.user.hotelId;
+    try {
+        const hotelId = req.user.hotelId;
+        if (!hotelId) {
+            return res.status(400).json({ message: "User is not associated with a hotel." });
+        }
+        const hotel = await prisma.hotel.findUnique({
+            where: { id: hotelId },
+            select: { products: true },
+        });
+        if (!hotel) {
+            return res.status(404).json({ message: "Hotel not found" });
+        }
 
-    const hotel = await prisma.hotel.findUnique({
-      where: { id: hotelId },
-      select: { products: true },
-    });
-
-    if (!hotel) {
-      return res.status(404).json({ message: "Hotel not found" });
+        const existingProductValues = (hotel.products || []).map(p => p.value);
+        const upgrades = ALL_MODULES.filter(
+            module => !existingProductValues.includes(module.value)
+        );
+        
+        return res.json({ upgrades });
+    } catch (err) {
+        console.error("Error fetching upgrades:", err);
+        return res.status(500).json({ message: "Internal server error" });
     }
-
-    // Compare by label instead of value
-    const existingLabels = (hotel.products || []).map(p => p.label);
-
-    const upgrades = ALL_MODULES.filter(
-      module => !existingLabels.includes(module.label)
-    );
-    return res.json({ upgrades });
-  } catch (err) {
-    console.error("Error fetching upgrades:", err);
-    return res.status(500).json({ message: "Internal server error" });
-  }
 };
 
-
-
+// =================== Download Policy ===================
+// NOTE: This logic is correct. No changes needed.
 export const downloadHotelPolicy = async (req, res) => {
-  try {
-    const user = req.user;
-    const hotel = await prisma.hotel.findUnique({
-      where: { id: user.hotelId },
-    });
+    try {
+        const hotelId = req.user.hotelId;
+        if (!hotelId) {
+             return res.status(401).json({ message: "Hotel not found for this user." });
+        }
+        const hotel = await prisma.hotel.findUnique({
+            where: { id: hotelId },
+        });
 
-    if (!hotel) {
-      return res.status(404).json({ message: "Hotel not found" });
-    }
+        if (!hotel) {
+            return res.status(404).json({ message: "Hotel not found" });
+        }
 
-    const doc = new PDFDocument({ margin: 40 });
+        const doc = new PDFDocument({ margin: 40 });
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="HotelPolicy-${hotel.name.replace(/\s+/g, "_")}.pdf"`
-    );
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+            "Content-Disposition",
+            `attachment; filename="HotelPolicy-${hotel.name.replace(/\s+/g, "_")}.pdf"`
+        );
 
-    doc.pipe(res);
+        doc.pipe(res);
 
-    // Heading
-    doc.fontSize(18).text("Hotel Policy Document", { align: "center" });
-    doc.moveDown();
-    doc.fontSize(12).text(`Hotel Name: ${hotel.name}`);
-    doc.text(`Location: ${hotel.city || ""}, ${hotel.state || ""}, ${hotel.country || ""}`);
-    doc.text(`Document Type: Standard Hotel Policies and Guest Guidelines`);
-    doc.text(`Effective Date: ${new Date().toLocaleDateString("en-IN")}`);
-    doc.moveDown();
+        // --- PDF Content ---
+        doc.fontSize(18).text("Hotel Policy Document", { align: "center" });
+        doc.moveDown();
+        doc.fontSize(12).text(`Hotel Name: ${hotel.name}`);
+        doc.text(`Location: ${hotel.city || ""}, ${hotel.state || ""}, ${hotel.country || ""}`);
+        doc.text(`Effective Date: ${new Date().toLocaleDateString("en-IN")}`);
+        doc.moveDown();
 
+        
     // Full Policy Content
     const policyContent = `
 1. Check-In / Check-Out Policy
@@ -478,19 +720,12 @@ export const downloadHotelPolicy = async (req, res) => {
 • In case of disputes, the jurisdiction will be the local courts of ${hotel.city || "your city"}.
 `;
 
-    doc.fontSize(10).text(policyContent, {
-      align: "left",
-      lineGap: 2,
-    });
+        
+        doc.fontSize(10).text(policyContent, { align: "left", lineGap: 2 });
+        doc.end();
 
-    doc.end();
-  } catch (error) {
-    console.error("Error generating hotel policy PDF:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to generate hotel policy PDF",
-    });
-  }
+    } catch (error) {
+        console.error("Error generating hotel policy PDF:", error);
+        res.status(500).json({ success: false, message: "Failed to generate hotel policy PDF" });
+    }
 };
-
-

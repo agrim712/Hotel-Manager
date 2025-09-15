@@ -34,6 +34,8 @@ useEffect(() => {
   const token = localStorage.getItem("token");
   if (!token || !isLoggedIn) return;
 
+  
+
   axios
     .get("http://localhost:5000/api/hotel/available-upgrades", {
       headers: { Authorization: `Bearer ${token}` },

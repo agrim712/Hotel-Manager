@@ -1,7 +1,8 @@
-// src/controllers/availableRoomsController.js
-import { PrismaClient } from "@prisma/client";
+import pkg from "@prisma/client";
+const { PrismaClient } = pkg;
 
 const prisma = new PrismaClient();
+
 
 // src/controllers/roomController.js
 

@@ -7,47 +7,70 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+
+model PropertyFiles {
+  id        Int      @id @default(autoincrement())
+  altText   String?  // Optional text for accessibility
+  hotelId   String   // Foreign key to link to the Hotel
+  hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  createdAt DateTime @default(now())
+  url       String
+  fileType  String 
+}
+
+// Room-level images
+model RoomImage {
+  id        Int      @id @default(autoincrement())
+  altText   String?  // Optional text for accessibility
+  hotelId   String   // Foreign key to link to the Hotel
+  createdAt DateTime @default(now())
+  roomId    String?
+  room      Room?   @relation(fields: [roomId], references: [id])
+  url       String
+}
+
+
 model Hotel {
-  id                 String  @id @default(cuid())
+  id                 String   @id @default(cuid())
   // Basic Information
   name               String
   brandAffiliation   String?
-  category           String  @default("3-Star")
+  category           String   @default("3-Star")
   registeredAddress  String
   operationalAddress String?
 
   // Location Information
-  country           Json? // { value: string, label: string }
-  state             String?
-  city              Json? // { value: string, label: string }
-  pinCode           String
-  timeZone          Json? // { value: string, label: string }
-  preferredLanguage Json? // { value: string, label: string }
+  country            Json? // { value: string, label: string }
+  state              String?
+  city               Json? // { value: string, label: string }
+  pinCode            String
+  timeZone           Json? // { value: string, label: string }
+  preferredLanguage  Json? // { value: string, label: string }
 
   // Amenities
-  amenities Json? // Array<{ value: string, label: string }>
+  amenities          Json? // Array<{ value: string, label: string }>
 
   // Contact Information
-  contactPerson  String
-  phoneCode      Json? // { value: string, label: string }
-  phoneNumber    String
-  whatsappNumber String?
-  email          String
-  website        String?
-  googleMapsLink String?
+  contactPerson      String
+  phoneCode          Json? // { value: string, label: string }
+  phoneNumber        String
+  whatsappNumber     String?
+  email              String   @unique
+  website            String?
+  googleMapsLink     String?
 
   // Property Details
-  totalRooms   Int
-  propertyType String?
-  currency     Json? // { value: string, label: string }
+  totalRooms         Int
+  propertyType       String?
+  currency           Json? // { value: string, label: string }
 
   // Government & Tax Details
-  panNumber           String
-  gstin               String?
-  fssaiLicense        String?
-  fireSafetyCert      String?
-  tradeLicense        String?
-  alcoholLicense      String?
+  panNumber          String
+  gstin              String?
+  fssaiLicense       String?
+  fireSafetyCert     String?
+  tradeLicense       String?
+  alcoholLicense     String?
   tourismRegistration String?
   companyRegistration String?
 
@@ -59,50 +82,75 @@ model Hotel {
   cancellationPolicy String
   noShowPolicy       String?
 
+
   // Accounting
-  invoiceFormat String?
-  paymentModes  Json? // string[]
+  invoiceFormat      String?
+  paymentModes       Json? // string[]
 
   // OTA
-  otas           Json? // string[]
-  channelManager String?
-  bookingEngine  String?
+  otas               Json? // string[]
+  channelManager     String?
+  bookingEngine      String?
 
   // Products
-  products Json? // Array<{ value: string, label: string }>
+  products           Json? // Array<{ value: string, label: string }>
 
   // Documents
-  logoPath            String?
-  panCardPath         String?
-  gstCertPath         String?
-  tradeLicensePath    String?
-  fireSafetyCertPath  String?
-  fssaiLicensePath    String?
+  logoPath           String?
+  panCardPath        String?
+  gstCertPath        String?
+  tradeLicensePath   String?
+  fireSafetyCertPath String?
+  fssaiLicensePath   String?
   cancelledChequePath String?
-  idProofPath         String?
-  propertyImages      Json? // Array<{ path: string, url: string }>
+  idProofPath        String?
 
-  // Relations
-  bankAccounts         BankAccount[]
-  rooms                Room[]
-  users                User[]
-  isPaymentDone        Boolean              @default(false)
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
-  Reservation          Reservation[]
-  RoomUnit             RoomUnit[]
-  RatePlan             RatePlan[]
-  expenses             Expense[]
-  expenseCategories    ExpenseCategory[]
-  StaffUser            StaffUser[]
-  equipments           Equipment[]
-  technicians          Technician[]
-  tickets              Ticket[]
+  propertyFiles      PropertyFiles[] // <-- NEW RELATION to PropertyImage model
+  bankAccounts       BankAccount[]
+  rooms              Room[]
+  users              User[]
+  isPaymentDone      Boolean         @default(false)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  Reservation        Reservation[]
+  RoomUnit           RoomUnit[]
+  RatePlan           RatePlan[]
+  expenses           Expense[]
+  expenseCategories  ExpenseCategory[]
+  StaffUser          StaffUser[]
+  equipments         Equipment[]
+  technicians        Technician[]
+  tickets            Ticket[]
   maintenanceHistories MaintenanceHistory[]
   preventiveSchedules  PreventiveSchedule[]
-  EnergyConsumption    EnergyConsumption[]
-  Lead                 Lead[]
-  Quotation            Quotation[]
+  EnergyConsumption  EnergyConsumption[]
+  Lead               Lead[]
+  Quotation          Quotation[]
+  customers      Customer[]
+  tables         Table[]
+  areas          Area[]
+  orders         Order[]
+  inventoryItems InventoryItem[]
+  suppliers      Supplier[]
+  reports        Report[]
+  notifications  Notification[]
+  devices        Device[]
+  onlineOrders   OnlineOrder[]
+  feedbacks      Feedback[]
+  menuCategories MenuCategory[]
+  menuItems      MenuItem[]
+  menuModifiers  MenuModifier[]
+  comboItems     ComboItem[]
+  kitchenOrders  KitchenOrder[]
+  orderSplits    OrderSplit[]
+  coupons        Coupon[]
+  inventoryTransactions InventoryTransaction[]
+  purchaseOrders PurchaseOrder[]
+  kitchenDisplays KitchenDisplay[]
+  queueEntries   QueueEntry[]
+  thirdPartyOrders ThirdPartyOrder[]
+  taxConfigurations TaxConfiguration[]
+  receiptTemplates ReceiptTemplate[]
 }
 
 model BankAccount {
@@ -113,6 +161,7 @@ model BankAccount {
   ifscCode          String
   accountType       String
   branch            String
+  isPrimary         Boolean @default(true)
   hotelId           String
   hotel             Hotel    @relation(fields: [hotelId], references: [id])
   createdAt         DateTime @default(now())
@@ -160,6 +209,8 @@ model Reservation {
   city            String
   state           String
   zip             String
+  customerId      String?
+  customer        Customer? @relation(fields: [customerId], references: [id])
   country         String
   identity        String
   idDetail        String
@@ -175,6 +226,7 @@ model Reservation {
   Room            Room[]
 }
 
+
 model Room {
   id             String        @id @default(cuid())
   name           String
@@ -188,7 +240,8 @@ model Room {
   smoking        String        @default("non-smoking")
   extraBedPolicy String?
   childPolicy    String?
-  roomImages     Json? // Array<{ path: string, url: string }>
+  RoomImages     RoomImage[]
+  petPolicy      String @default("Not Allowed")
   hotelId        String
   hotel          Hotel         @relation(fields: [hotelId], references: [id])
   reservations   Reservation[] @relation("RoomToReservation")
@@ -418,7 +471,6 @@ model SavedForm {
   user           User     @relation(fields: [userId], references: [id])
   formData       Json
   currentSection String
-  uploadedFiles  Json?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -435,23 +487,40 @@ model R_Category {
 }
 
 model R_Item {
-  id          Int        @id @default(autoincrement())
+  id          Int         @id @default(autoincrement())
   name        String
   price       Float
   description String?
-  spiceLevel  String     @default("Mild")
+  spiceLevel  String      @default("Mild")
   allergens   String[]
-  vegetarian  Boolean    @default(false)
-  available   Boolean    @default(true)
-  prepTime    Int        @default(15)
-  category    R_Category @relation(fields: [categoryId], references: [id])
+  vegetarian  Boolean     @default(false)
+  available   Boolean     @default(true)
+  prepTime    Int         @default(15)
+  category    R_Category  @relation(fields: [categoryId], references: [id])
   categoryId  Int
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  code        String
+  numCode     Int  
+  orderItems  OrderItem[]
+
+  // Relation to images
+  itemImage   ItemImage[]
 
   @@unique([name, categoryId])
 }
 
+model ItemImage {
+  id        Int       @id @default(autoincrement())
+  altText   String?   // optional description
+  isPrimary Boolean   @default(false)
+  url       String    // store relative path like "uploads/filename.jpg"
+  itemId    Int
+  item      R_Item    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+   
 model StaffUser {
   id        String   @id @default(cuid())
   name      String
@@ -464,6 +533,422 @@ model StaffUser {
   updatedAt DateTime @updatedAt
 }
 
+// ===================== POS Entities =====================
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?  @unique
+  phone     String? 
+  hotelId   String
+  hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  orders    Order[]
+  feedbacks Feedback[]
+  reservations Reservation[]
+  createdAt DateTime @default(now())
+}
+
+model Table {
+  id        String   @id @default(cuid())
+  number    String
+  capacity  Int
+  areaId    String?
+  area      Area?    @relation(fields: [areaId], references: [id])
+  hotelId   String
+  hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  orders    Order[]
+  status    String   @default("AVAILABLE") // AVAILABLE, OCCUPIED, RESERVED
+}
+
+model Area {
+  id        String   @id @default(cuid())
+  name      String
+  hotelId   String
+  hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  tables    Table[]
+}
+
+model Order {
+  id           String       @id @default(cuid())
+  orderNumber  String       @unique // Auto-generated order number
+  type         String       // dine-in, takeaway, delivery
+  status       String       @default("PENDING") // PENDING, CONFIRMED, PREPARING, READY, COMPLETED, CANCELLED
+  hotelId      String
+  hotel        Hotel        @relation(fields: [hotelId], references: [id])
+  customerId   String?
+  customer     Customer?    @relation(fields: [customerId], references: [id])
+  tableId      String?
+  table        Table?       @relation(fields: [tableId], references: [id])
+  orderItems   OrderItem[]
+  bills        Bill[]
+  payments     Payment[]
+  discounts    Discount[]
+  kitchenOrders KitchenOrder[]
+  orderSplits  OrderSplit[]
+  notes        String?
+  estimatedTime Int?        // minutes
+  actualTime   Int?         // minutes
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id])
+  itemId    Int
+  item      R_Item   @relation(fields: [itemId], references: [id])
+  quantity  Int      @default(1)
+  notes     String?  // modifiers like "extra cheese", "no onion"
+  price     Float
+  modifiers OrderModifier[]
+  createdAt DateTime @default(now())
+}
+
+model Bill {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id])
+  total     Float
+  tax       Float?
+  serviceCharge Float?
+  discount  Float?
+  finalAmount Float
+  createdAt DateTime @default(now())
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id])
+  mode      PaymentMode
+  amount    Float
+  status    String   @default("SUCCESS") // SUCCESS, FAILED, PENDING
+  createdAt DateTime @default(now())
+}
+
+model Discount {
+  id        String   @id @default(cuid())
+  code      String?
+  type      String   // PERCENTAGE or FLAT
+  value     Float
+  orderId   String?
+  order     Order?   @relation(fields: [orderId], references: [id])
+  validFrom DateTime?
+  validTo   DateTime?
+}
+
+model InventoryItem {
+  id        String   @id @default(cuid())
+  name      String
+  quantity  Float
+  unit      String
+  threshold Float?
+  costPrice Float?
+  hotelId   String
+  hotel     Hotel     @relation(fields: [hotelId], references: [id])
+  supplierId String?
+  supplier   Supplier? @relation(fields: [supplierId], references: [id])
+  transactions InventoryTransaction[]
+  purchaseOrders PurchaseOrder[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Supplier {
+  id        String   @id @default(cuid())
+  name      String
+  contact   String?
+  email     String?
+  address   String?
+  phone     String?
+  hotelId   String
+  hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  items     InventoryItem[]
+  purchaseOrders PurchaseOrder[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Report {
+  id        String   @id @default(cuid())
+  type      String   // sales, inventory, revenue
+  data      Json
+  hotelId   String
+  hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  type      String
+  message   String
+  read      Boolean  @default(false)
+  hotelId   String
+  hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Device {
+  id        String   @id @default(cuid())
+  type      String   // POS terminal, KDS screen, printer
+  identifier String
+  hotelId   String
+  hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+
+model OnlineOrder {
+  id        String   @id @default(cuid())
+  platform  String   // Swiggy, Zomato, UberEats
+  orderId   String
+  status    String
+  hotelId   String
+  hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  rating    Int
+  comment   String?
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+  hotelId   String
+  hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+// ===================== Enhanced POS Entities =====================
+
+model MenuCategory {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  image       String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  hotelId     String
+  hotel       Hotel    @relation(fields: [hotelId], references: [id])
+  menuItems   MenuItem[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([name, hotelId])
+}
+
+model MenuItem {
+  id              String        @id @default(cuid())
+  name            String
+  description     String?
+  basePrice       Float
+  categoryId      String
+  category        MenuCategory  @relation(fields: [categoryId], references: [id])
+  hotelId         String
+  hotel           Hotel         @relation(fields: [hotelId], references: [id])
+  images          MenuItemImage[]
+  modifiers       MenuModifier[]
+  combos          ComboItem[]
+  isAvailable     Boolean       @default(true)
+  prepTime        Int           @default(15) // minutes
+  spiceLevel      String        @default("Mild")
+  allergens       String[]
+  vegetarian      Boolean       @default(false)
+  calories        Int?
+  sortOrder       Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([name, categoryId])
+}
+
+model MenuItemImage {
+  id        String   @id @default(cuid())
+  url       String
+  altText   String?
+  isPrimary Boolean  @default(false)
+  itemId    String
+  item      MenuItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model MenuModifier {
+  id          String   @id @default(cuid())
+  name        String
+  price       Float
+  type        String   // ADDON, SUBSTITUTION, REMOVAL
+  isRequired  Boolean  @default(false)
+  itemId      String
+  item        MenuItem @relation(fields: [itemId], references: [id])
+  hotelId     String
+  hotel       Hotel    @relation(fields: [hotelId], references: [id])
+  orderModifiers OrderModifier[]
+  createdAt   DateTime @default(now())
+}
+
+model ComboItem {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Float
+  items       Json     // Array of { itemId, quantity }
+  hotelId     String
+  hotel       Hotel    @relation(fields: [hotelId], references: [id])
+  menuItems   MenuItem[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model OrderModifier {
+  id          String   @id @default(cuid())
+  modifierId  String
+  modifier    MenuModifier @relation(fields: [modifierId], references: [id])
+  orderItemId String
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+model KitchenOrder {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id])
+  hotelId     String
+  hotel       Hotel    @relation(fields: [hotelId], references: [id])
+  status      String   @default("PENDING") // PENDING, PREPARING, READY, SERVED
+  priority    String   @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  estimatedTime Int?   // minutes
+  actualTime  Int?     // minutes
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model OrderSplit {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id])
+  hotelId   String
+  hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  items     Json     // Array of { itemId, quantity, price }
+  total     Float
+  customerName String?
+  createdAt DateTime @default(now())
+}
+
+model Coupon {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  type        String   // PERCENTAGE, FLAT, BUY_X_GET_Y
+  value       Float
+  minOrderAmount Float?
+  maxDiscount Float?
+  usageLimit  Int?
+  usedCount   Int      @default(0)
+  validFrom   DateTime
+  validTo     DateTime
+  isActive    Boolean  @default(true)
+  hotelId     String
+  hotel       Hotel    @relation(fields: [hotelId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model InventoryTransaction {
+  id          String   @id @default(cuid())
+  itemId      String
+  item        InventoryItem @relation(fields: [itemId], references: [id])
+  type        String   // IN, OUT, WASTE, ADJUSTMENT
+  quantity    Float
+  reason      String?
+  reference   String?  // Order ID, Purchase Order ID, etc.
+  hotelId     String
+  hotel       Hotel    @relation(fields: [hotelId], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+model PurchaseOrder {
+  id          String   @id @default(cuid())
+  supplierId  String
+  supplier    Supplier @relation(fields: [supplierId], references: [id])
+  inventoryItemId String
+  inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  items       Json     // Array of { itemId, quantity, unitPrice }
+  totalAmount Float
+  status      String   @default("PENDING") // PENDING, CONFIRMED, DELIVERED, CANCELLED
+  expectedDate DateTime?
+  deliveredDate DateTime?
+  notes       String?
+  hotelId     String
+  hotel       Hotel    @relation(fields: [hotelId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model KitchenDisplay {
+  id          String   @id @default(cuid())
+  name        String
+  location    String
+  isActive    Boolean  @default(true)
+  hotelId     String
+  hotel       Hotel    @relation(fields: [hotelId], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+model QueueEntry {
+  id          String   @id @default(cuid())
+  customerName String
+  phone       String?
+  partySize   Int
+  estimatedWait Int?   // minutes
+  status      String   @default("WAITING") // WAITING, SEATED, CANCELLED
+  notes       String?
+  hotelId     String
+  hotel       Hotel    @relation(fields: [hotelId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ThirdPartyOrder {
+  id          String   @id @default(cuid())
+  platform    String   // SWIGGY, ZOMATO, UBER_EATS, etc.
+  externalOrderId String
+  status      String   @default("PENDING")
+  orderData   Json     // Full order data from platform
+  hotelId     String
+  hotel       Hotel    @relation(fields: [hotelId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([platform, externalOrderId])
+}
+
+model TaxConfiguration {
+  id              String   @id @default(cuid())
+  name            String
+  type            String   // GST, VAT, SERVICE_CHARGE
+  rate            Float
+  isInclusive     Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  hotelId         String
+  hotel           Hotel    @relation(fields: [hotelId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model ReceiptTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  template    Json     // Receipt template configuration
+  isDefault   Boolean  @default(false)
+  hotelId     String
+  hotel       Hotel    @relation(fields: [hotelId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+
 enum RoomStatus {
   AVAILABLE
   BOOKED
@@ -473,6 +958,12 @@ enum RoomStatus {
 enum Role {
   SUPERADMIN
   HOTELADMIN
+  FRONTOFFICE
+  MARKETING
+  SALES 
+  CHIEF
+  WAITER 
+  RESTAURANTMANAGER
 }
 
 enum PaymentMode {

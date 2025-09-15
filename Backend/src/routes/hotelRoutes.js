@@ -1,11 +1,10 @@
 import express from "express";
-import path from "path";
-import fs from "fs";
 import multer from "multer";
-import { fileURLToPath } from "url";
-import { PrismaClient } from "@prisma/client";
+
+import pkg from '@prisma/client';
+const { PrismaClient, Prisma } = pkg;
 import { auth, authorizeRoles } from "../middleware/auth.js";
-import { createHotel, getAvailableUpgrades, getProductsByHotelId } from "../controllers/hotelContoller.js";
+import { createHotel, getAvailableUpgrades, getProductsByHotelId} from "../controllers/hotelContoller.js";
 import { getRoomTypes } from "../controllers/Reservation/roomType.js";
 import { getRatePlans } from "../controllers/Reservation/getRatePlans.js";
 import { getRoomCount } from "../controllers/Reservation/noOfRooms.js";
@@ -22,7 +21,7 @@ import { getSavedForm, saveForm } from "../controllers/formController.js";
 import { getHotelKPI } from "../controllers/Revenue/revenueController.js";
 import { getAllRooms } from "../controllers/hotelContoller.js";
 import { HOTEL_ROLES } from "../utils/roles.js";
-import { getRoomDetails } from "../controllers/hotelContoller.js";
+import { getRoomDetails , updateHotel, getPropertyFilesByHotelId, deletePropertyFile} from "../controllers/hotelContoller.js";
 import { createSchedule, getSchedules } from "../controllers/tickets/preventiveController.js"
 import { createTicket, getTickets, getTicketById, assignTechnician, updateTicketStatus } from "../controllers/tickets/ticketsController.js"
 import { getTechnicians, createTechnician } from '../controllers/tickets/techniciansController.js'
@@ -39,48 +38,178 @@ import { getQuotations } from "../controllers/sales/quotationController.js";
 const prisma = new PrismaClient();
 const router = express.Router();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const uploadDir = path.join(__dirname, '..', '..', 'uploads', 'photos');
+const upload = multer({ storage: multer.memoryStorage() });
 
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
-});
-const upload = multer({ storage });
-
-router.use('/photos', express.static(uploadDir));
-
-/* ======================= Hotel Routes ======================= */
 router.post('/onboard', auth, authorizeRoles('HOTELADMIN'), upload.any(),createHotel);
-// In your router
-router.post('/upload-room-images', auth, authorizeRoles('HOTELADMIN'), upload.array('images', 10), async (req, res) => {
+// 👇 no extra "hotel" prefix here
+router.get("/:hotelId/property-files", getPropertyFilesByHotelId);
+router.delete("/property-files/:id", auth, authorizeRoles('HOTELADMIN'), deletePropertyFile);
+
+
+router.post(
+  "/upload-file",
+  auth,
+  authorizeRoles("HOTELADMIN"),
+  upload.array("files", 10),
+  async (req, res) => {
+    try {
+      if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ success: false, message: "No files were uploaded." });
+      }
+
+      const { hotelId, roomId } = req.body;
+
+      if (!hotelId && !roomId) {
+        return res.status(400).json({
+          success: false,
+          message: "A hotelId or a roomId must be provided to associate the image with a property."
+        });
+      }
+
+      const savedEntities = await Promise.all(
+        req.files.map(async (file) => {
+          const timestamp = Date.now();
+          const uniqueFilename = `${timestamp}-${file.originalname}`;
+          const fileUrl = `${req.protocol}://${req.get("host")}/api/hotel/files/${uniqueFilename}`;
+          
+          return prisma.$transaction(async (tx) => {
+            // Step 1: Create the UploadedFile metadata record.
+            // NOTE: We are NOT saving `file.buffer` because the schema has no Bytes field.
+            // The actual file content is currently being discarded.
+            const newFile = await tx.uploadedFile.create({
+              data: {
+                filename: uniqueFilename,
+                originalName: file.originalname,
+                path: `db://${uniqueFilename}`, // This is a logical path
+                url: fileUrl,
+              },
+            });
+
+            // Step 2: Create the PropertyImage record according to your schema.
+            // It links directly to the hotel/room and stores the URL.
+            const newPropertyImage = await tx.propertyImage.create({
+              data: {
+                url: fileUrl, // Use the URL generated above
+                altText: file.originalname, // Use the original filename as alt text
+                hotelId: hotelId ? hotelId : undefined, // hotelId is a String in your schema
+                roomId: roomId ? roomId : undefined,   // roomId is a String in your schema
+              },
+            });
+            
+            // Return both created records for the response
+            return { uploadedFile: newFile, propertyImage: newPropertyImage };
+          });
+        })
+      );
+
+      // The response does not contain binary data, so no sanitation is needed.
+      res.status(201).json({ success: true, results: savedEntities });
+
+    } catch (error) {
+      console.error("Error during file upload:", error);
+      
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2003') { 
+          return res.status(400).json({
+            success: false,
+            message: `Invalid property ID. The specified hotel or room does not exist.`,
+            error: `The value provided for '${error.meta.field_name}' is not valid.`,
+          });
+        }
+      }
+
+      res.status(500).json({
+        success: false,
+        message: "Failed to upload files due to a server error.",
+        error: error.message,
+      });
+    }
+  }
+  
+);
+router.put(
+  '/update',
+  auth,
+  authorizeRoles('HOTELADMIN'),
+  upload.any(),
+  updateHotel
+);
+
+router.get('/status-by-email', async (req, res) => {
   try {
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ success: false, message: 'No files uploaded' });
+      const { email } = req.query;
+
+      if (!email) {
+          return res.status(400).json({ message: 'Email query parameter is required.' });
+      }
+
+      const hotel = await prisma.hotel.findUnique({ where: { email: email } });
+
+      if (!hotel) {
+          return res.status(404).json({ message: 'No hotel registration found for this email.' });
+      }
+
+      // Check payment status and return the appropriate response
+      if (hotel.isPaymentDone === false) {
+          return res.status(200).json({
+              status: 'PENDING_PAYMENT',
+              message: 'Payment is pending. Please complete the process.',
+              hotelId: hotel.id
+          });
+      } else {
+          // isPaymentDone is true
+          return res.status(200).json({
+              status: 'PAYMENT_SUCCESSFUL',
+              message: 'Payment has been completed.',
+              hotelId: hotel.id
+          });
+      }
+      
+      // The code below this line was unreachable and has been removed.
+
+  } catch (error) {
+      console.error('Error fetching hotel status:', error);
+      res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
+// Route to serve files from database
+router.get("/files/:filename", auth, async (req, res) => {
+  try {
+    const { filename } = req.params;
+    
+    // Find the file in the database
+    const fileRecord = await prisma.uploadedFile.findFirst({
+      where: { filename: filename }
+    });
+
+    if (!fileRecord) {
+      return res.status(404).json({ error: "File not found" });
     }
 
-    const imageData = req.files.map(file => ({
-      filename: file.filename,
-      path: file.path,
-      url: `${req.protocol}://${req.get('host')}/uploads/photos/${file.filename}`
-    }));
+    // Determine content type based on file extension
+    const ext = filename.split('.').pop().toLowerCase();
+    let contentType = 'application/octet-stream';
+    
+    if (['jpg', 'jpeg'].includes(ext)) contentType = 'image/jpeg';
+    else if (ext === 'png') contentType = 'image/png';
+    else if (ext === 'pdf') contentType = 'application/pdf';
+    else if (ext === 'gif') contentType = 'image/gif';
+    else if (ext === 'webp') contentType = 'image/webp';
 
-    res.json({ 
-      success: true, 
-      images: imageData
+    res.set({
+      'Content-Type': contentType,
+      'Content-Disposition': `inline; filename="${fileRecord.filename}"`,
+      'Content-Length': fileRecord.data.length,
+      'Cache-Control': 'public, max-age=31536000'
     });
+
+    // Send the file data
+    res.send(fileRecord.data);
   } catch (error) {
-    console.error('Error uploading images:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to upload images',
-      error: error.message
-    });
+    console.error("Error serving file:", error);
+    res.status(500).json({ error: "Failed to serve file" });
   }
 });
 
@@ -120,8 +249,7 @@ router.get("/products", auth, authorizeRoles(...HOTEL_ROLES),getProductsByHotelI
 
 router.get('/available-upgrades', auth, authorizeRoles(...HOTEL_ROLES), getAvailableUpgrades);
 
-/* ===================== Sales Routes ==================== */
-// Get leads
+
 router.get("/leads", auth, authorizeRoles(...HOTEL_ROLES), async (req, res) => {
   try {
     const leads = await prisma.lead.findMany({

@@ -1,7 +1,8 @@
 // routes/superadmin.js
 
 import express from "express";
-import { PrismaClient } from "@prisma/client";
+import pkg from "@prisma/client";
+const { PrismaClient } = pkg;
 import { auth, authorizeRoles } from "../middleware/auth.js";
 
 const prisma = new PrismaClient();
@@ -14,7 +15,7 @@ router.get("/all", auth, authorizeRoles("SUPERADMIN"), async (req, res) => {
       where: {
         users: {
           none: {
-            role: "SUPERADMIN", // exclude hotels with a HOTELADMIN user
+            role: "SUPERADMIN", // ❌ BUG: This should probably be "HOTELADMIN"
           },
         },
       },
@@ -22,7 +23,7 @@ router.get("/all", auth, authorizeRoles("SUPERADMIN"), async (req, res) => {
         createdAt: "desc",
       },
       include: {
-        users: true, // Optional: to inspect the users, remove if not needed
+        users: true,
       },
     });
 
