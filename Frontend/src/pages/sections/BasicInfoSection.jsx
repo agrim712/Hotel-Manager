@@ -3,7 +3,7 @@ import { Controller } from 'react-hook-form';
 import Select from "react-select";
 import CreatableSelect from "react-select/creatable";
 
-const BasicInfoSection = ({ register, control, errors, loading, countryOptions, cityOptions }) => {
+const BasicInfoSection = ({ register, control, errors, loading }) => {
     const timezoneOptions = [
         { value: "GMT", label: "GMT (Greenwich Mean Time)" },
         { value: "IST", label: "IST (Indian Standard Time)" },
@@ -11,6 +11,20 @@ const BasicInfoSection = ({ register, control, errors, loading, countryOptions, 
         { value: "PST", label: "PST (Pacific Standard Time)" },
         { value: "CET", label: "CET (Central European Time)" },
     ];
+    const countryOptions = [
+    { value: "IN", label: "India" },
+    { value: "US", label: "United States" },
+    { value: "UK", label: "United Kingdom" },
+  ];
+
+  // Hardcoded city options
+  const cityOptions = [
+    { value: "Delhi", label: "Delhi" },
+    { value: "Mumbai", label: "Mumbai" },
+    { value: "New York", label: "New York" },
+    { value: "Los Angeles", label: "Los Angeles" },
+    { value: "London", label: "London" },
+  ];
 
     const languageOptions = [
         { value: "en", label: "English" },
@@ -21,108 +35,109 @@ const BasicInfoSection = ({ register, control, errors, loading, countryOptions, 
         { value: "zh", label: "Chinese" },
     ];
 
-    const hotelAmenitiesOptions = [
-        // ... (options remain the same, no changes needed here)
-         {
-    label: "Essential In-Room Amenities",
-    options: [
-      { value: "high_quality_bedding", label: "High-Quality Bedding" },
-      { value: "toiletries", label: "Toiletries (Shampoo, Conditioner, etc.)" },
-      { value: "hairdryer", label: "Hairdryer" },
-      { value: "bathrobes_slippers", label: "Bathrobes & Slippers" },
-      { value: "dental_shaving_kit", label: "Dental/Shaving Kit" },
-      { value: "wardrobe", label: "Wardrobe" },
-      { value: "safe", label: "Safe Deposit Box" },
-      { value: "desk_chair", label: "Desk & Chair" },
-      { value: "flat_screen_tv", label: "Flat-Screen TV" },
-      { value: "usb_ports", label: "USB Charging Ports" },
-      { value: "wifi", label: "High-Speed Wi-Fi" },
-      { value: "minibar", label: "Minibar" },
-      { value: "coffee_tea_station", label: "Coffee/Tea Station" },
-      { value: "complimentary_water", label: "Complimentary Water" },
-    ],
-  },
-  {
-    label: "Wellness & Fitness",
-    options: [
-      { value: "spa", label: "Spa Services" },
-      { value: "gym", label: "Gym / Fitness Center" },
-      { value: "yoga", label: "Yoga Mats / Guided Yoga" },
-      { value: "swimming_pool", label: "Swimming Pool" },
-      { value: "jacuzzi", label: "Hot Tub / Jacuzzi" },
-      { value: "sauna", label: "Sauna / Steam Room" },
-    ],
-  },
-  {
-    label: "Dining & Beverage",
-    options: [
-      { value: "restaurant", label: "Restaurant" },
-      { value: "room_service", label: "24-Hour Room Service" },
-      { value: "bar", label: "Bar / Rooftop Bar" },
-      { value: "breakfast_buffet", label: "Breakfast Buffet" },
-      { value: "welcome_basket", label: "Local Flavor Welcome Basket" },
-    ],
-  },
-  {
-    label: "Business & Tech",
-    options: [
-      { value: "conference_room", label: "Conference Room" },
-      { value: "business_center", label: "Business Center" },
-      { value: "coworking_lounge", label: "Coworking Lounge" },
-      { value: "av_equipment", label: "A/V Equipment & Projectors" },
-      { value: "mobile_checkin", label: "Mobile Check-in / Keyless Entry" },
-      { value: "smart_controls", label: "In-Room Tablet / Smart Controls" },
-    ],
-  },
-  {
-    label: "Leisure & Entertainment",
-    options: [
-      { value: "game_room", label: "Game Room" },
-      { value: "movie_screenings", label: "Movie Screenings" },
-      { value: "kids_club", label: "Kids' Club" },
-      { value: "bike_rentals", label: "Bike Rentals / Tours" },
-      { value: "golf_simulator", label: "Golf Simulator" },
-      { value: "art_gallery", label: "Onsite Art Gallery" },
-    ],
-  },
-  {
-    label: "Luxury & Boutique Add-Ons",
-    options: [
-      { value: "butler_service", label: "Butler Service" },
-      { value: "private_balcony", label: "Private Balcony" },
-      { value: "chauffeur_car", label: "Chauffeur-Driven Car" },
-      { value: "welcome_gift", label: "Welcome Gift (Fruit/Champagne)" },
-      { value: "eco_amenities", label: "Eco-Friendly Toiletries" },
-      { value: "energy_lighting", label: "Energy-Efficient Lighting" },
-    ],
-  },
-  {
-    label: "Family & Pet-Friendly",
-    options: [
-      { value: "cribs", label: "Cribs / Infant Supplies" },
-      { value: "strollers", label: "Strollers" },
-      { value: "pet_beds", label: "Pet Beds & Bowls" },
-      { value: "pet_grooming", label: "Pet Grooming Services" },
-      { value: "themed_rooms", label: "Family / Themed Rooms" },
-    ],
-  },
-  {
-    label: "Accessibility & Convenience",
-    options: [
-      { value: "roll_in_showers", label: "Roll-in Showers" },
-      { value: "accessible_ramps", label: "Accessible Ramps & Entrances" },
-      { value: "visual_alarms", label: "Visual Fire Alarms" },
-      { value: "laundry", label: "Laundry / Ironing Service" },
-      { value: "luggage_storage", label: "Luggage Storage" },
-      { value: "concierge", label: "Concierge Services" },
-      { value: "free_parking", label: "Free Parking" },
-      { value: "airport_shuttle", label: "Airport Shuttle" },
-    ],
-  },
-    ];
-    // FIX: Helper to get a flattened list of all amenities for the CreatableSelect value lookup
-    const allAmenities = hotelAmenitiesOptions.flatMap(group => group.options);
+    const DEFAULT_COUNTRY = "IN";   // India
+    const DEFAULT_CITY = "Delhi"; 
 
+    const hotelAmenitiesOptions = [
+        {
+            label: "Essential In-Room Amenities",
+            options: [
+                { value: "high_quality_bedding", label: "High-Quality Bedding" },
+                { value: "toiletries", label: "Toiletries (Shampoo, Conditioner, etc.)" },
+                { value: "hairdryer", label: "Hairdryer" },
+                { value: "bathrobes_slippers", label: "Bathrobes & Slippers" },
+                { value: "dental_shaving_kit", label: "Dental/Shaving Kit" },
+                { value: "wardrobe", label: "Wardrobe" },
+                { value: "safe", label: "Safe Deposit Box" },
+                { value: "desk_chair", label: "Desk & Chair" },
+                { value: "flat_screen_tv", label: "Flat-Screen TV" },
+                { value: "usb_ports", label: "USB Charging Ports" },
+                { value: "wifi", label: "High-Speed Wi-Fi" },
+                { value: "minibar", label: "Minibar" },
+                { value: "coffee_tea_station", label: "Coffee/Tea Station" },
+                { value: "complimentary_water", label: "Complimentary Water" },
+            ],
+        },
+        {
+            label: "Wellness & Fitness",
+            options: [
+                { value: "spa", label: "Spa Services" },
+                { value: "gym", label: "Gym / Fitness Center" },
+                { value: "yoga", label: "Yoga Mats / Guided Yoga" },
+                { value: "swimming_pool", label: "Swimming Pool" },
+                { value: "jacuzzi", label: "Hot Tub / Jacuzzi" },
+                { value: "sauna", label: "Sauna / Steam Room" },
+            ],
+        },
+        {
+            label: "Dining & Beverage",
+            options: [
+                { value: "restaurant", label: "Restaurant" },
+                { value: "room_service", label: "24-Hour Room Service" },
+                { value: "bar", label: "Bar / Rooftop Bar" },
+                { value: "breakfast_buffet", label: "Breakfast Buffet" },
+                { value: "welcome_basket", label: "Local Flavor Welcome Basket" },
+            ],
+        },
+        {
+            label: "Business & Tech",
+            options: [
+                { value: "conference_room", label: "Conference Room" },
+                { value: "business_center", label: "Business Center" },
+                { value: "coworking_lounge", label: "Coworking Lounge" },
+                { value: "av_equipment", label: "A/V Equipment & Projectors" },
+                { value: "mobile_checkin", label: "Mobile Check-in / Keyless Entry" },
+                { value: "smart_controls", label: "In-Room Tablet / Smart Controls" },
+            ],
+        },
+        {
+            label: "Leisure & Entertainment",
+            options: [
+                { value: "game_room", label: "Game Room" },
+                { value: "movie_screenings", label: "Movie Screenings" },
+                { value: "kids_club", label: "Kids' Club" },
+                { value: "bike_rentals", label: "Bike Rentals / Tours" },
+                { value: "golf_simulator", label: "Golf Simulator" },
+                { value: "art_gallery", label: "Onsite Art Gallery" },
+            ],
+        },
+        {
+            label: "Luxury & Boutique Add-Ons",
+            options: [
+                { value: "butler_service", label: "Butler Service" },
+                { value: "private_balcony", label: "Private Balcony" },
+                { value: "chauffeur_car", label: "Chauffeur-Driven Car" },
+                { value: "welcome_gift", label: "Welcome Gift (Fruit/Champagne)" },
+                { value: "eco_amenities", label: "Eco-Friendly Toiletries" },
+                { value: "energy_lighting", label: "Energy-Efficient Lighting" },
+            ],
+        },
+        {
+            label: "Family & Pet-Friendly",
+            options: [
+                { value: "cribs", label: "Cribs / Infant Supplies" },
+                { value: "strollers", label: "Strollers" },
+                { value: "pet_beds", label: "Pet Beds & Bowls" },
+                { value: "pet_grooming", label: "Pet Grooming Services" },
+                { value: "themed_rooms", label: "Family / Themed Rooms" },
+            ],
+        },
+        {
+            label: "Accessibility & Convenience",
+            options: [
+                { value: "roll_in_showers", label: "Roll-in Showers" },
+                { value: "accessible_ramps", label: "Accessible Ramps & Entrances" },
+                { value: "visual_alarms", label: "Visual Fire Alarms" },
+                { value: "laundry", label: "Laundry / Ironing Service" },
+                { value: "luggage_storage", label: "Luggage Storage" },
+                { value: "concierge", label: "Concierge Services" },
+                { value: "free_parking", label: "Free Parking" },
+                { value: "airport_shuttle", label: "Airport Shuttle" },
+            ],
+        },
+    ];
+
+    const allAmenities = hotelAmenitiesOptions.flatMap(group => group.options);
 
     return (
         <div className="bg-gray-50 p-6 rounded-xl">
@@ -131,6 +146,7 @@ const BasicInfoSection = ({ register, control, errors, loading, countryOptions, 
                 Basic Information
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Hotel Name */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Hotel Name *</label>
                     <input
@@ -142,6 +158,7 @@ const BasicInfoSection = ({ register, control, errors, loading, countryOptions, 
                     {errors.name && <span className="text-red-500 text-sm mt-1">{errors.name.message}</span>}
                 </div>
 
+                {/* Brand Affiliation */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Brand/Group Affiliation</label>
                     <input
@@ -152,6 +169,7 @@ const BasicInfoSection = ({ register, control, errors, loading, countryOptions, 
                     />
                 </div>
 
+                {/* Hotel Category */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Hotel Category *</label>
                     <select
@@ -172,6 +190,7 @@ const BasicInfoSection = ({ register, control, errors, loading, countryOptions, 
                     {errors.category && <span className="text-red-500 text-sm mt-1">{errors.category.message}</span>}
                 </div>
 
+                {/* Registered Address */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Registered Address *</label>
                     <input
@@ -183,6 +202,7 @@ const BasicInfoSection = ({ register, control, errors, loading, countryOptions, 
                     {errors.registeredAddress && <span className="text-red-500 text-sm mt-1">{errors.registeredAddress.message}</span>}
                 </div>
 
+                {/* Operational Address */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Operational Address (if different)</label>
                     <input
@@ -193,65 +213,56 @@ const BasicInfoSection = ({ register, control, errors, loading, countryOptions, 
                     />
                 </div>
 
+                {/* Country */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Country *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
                     <Controller
                         name="country"
                         control={control}
-                        rules={{ required: "Country is required" }}
                         render={({ field }) => (
                             <Select
-                                // FIX: Find the object from options that matches the stored value
-                                value={countryOptions.find(c => c.value === field.value)}
-                                // FIX: On change, store only the value property
-                                onChange={val => field.onChange(val ? val.value : '')}
+                                value={countryOptions.find(c => c.value === field.value) || countryOptions.find(c => c.value === DEFAULT_COUNTRY)}
+                                onChange={val => field.onChange(val ? val.value : DEFAULT_COUNTRY)}
                                 options={countryOptions}
                                 placeholder="Select country"
                                 isClearable
                                 isDisabled={loading}
-                                className="react-select-container"
-                                classNamePrefix="react-select"
                             />
                         )}
                     />
-                    {errors.country && <span className="text-red-500 text-sm mt-1">{errors.country.message}</span>}
                 </div>
 
+                {/* State */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">State *</label>
                     <input
-                        {...register("state", { required: "State is required" })}
+                        {...register("state")}
                         placeholder="Enter state"
                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
                         disabled={loading}
                     />
-                    {errors.state && <span className="text-red-500 text-sm mt-1">{errors.state.message}</span>}
                 </div>
 
+                {/* City */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">City *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
                     <Controller
                         name="city"
                         control={control}
-                        rules={{ required: "City is required" }}
                         render={({ field }) => (
                             <Select
-                                // FIX: Find the object from options that matches the stored value
-                                value={cityOptions.find(c => c.value === field.value)}
-                                // FIX: On change, store only the value property
-                                onChange={val => field.onChange(val ? val.value : '')}
-                                options={cityOptions}
+                                value={cityOptions.find(c => c.value === field.value) || { value: DEFAULT_CITY, label: DEFAULT_CITY }}
+                                onChange={val => field.onChange(val ? val.value : DEFAULT_CITY)}
+                                options={cityOptions.length > 0 ? cityOptions : [{ value: DEFAULT_CITY, label: DEFAULT_CITY }]}
                                 placeholder="Select city"
                                 isClearable
                                 isDisabled={loading}
-                                className="react-select-container"
-                                classNamePrefix="react-select"
                             />
                         )}
                     />
-                    {errors.city && <span className="text-red-500 text-sm mt-1">{errors.city.message}</span>}
                 </div>
 
+                {/* Pin Code */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Pin Code *</label>
                     <input
@@ -266,6 +277,7 @@ const BasicInfoSection = ({ register, control, errors, loading, countryOptions, 
                     {errors.pinCode && <span className="text-red-500 text-sm mt-1">{errors.pinCode.message}</span>}
                 </div>
 
+                {/* Time Zone */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Time Zone *</label>
                     <Controller
@@ -274,22 +286,19 @@ const BasicInfoSection = ({ register, control, errors, loading, countryOptions, 
                         rules={{ required: "Time Zone is required" }}
                         render={({ field }) => (
                             <Select
-                                // FIX: Find the object from options that matches the stored value
                                 value={timezoneOptions.find(c => c.value === field.value)}
-                                // FIX: On change, store only the value property
                                 onChange={val => field.onChange(val ? val.value : '')}
                                 options={timezoneOptions}
                                 placeholder="Select time zone"
                                 isClearable
                                 isDisabled={loading}
-                                className="react-select-container"
-                                classNamePrefix="react-select"
                             />
                         )}
                     />
                     {errors.timeZone && <span className="text-red-500 text-sm mt-1">{errors.timeZone.message}</span>}
                 </div>
 
+                {/* Preferred Language */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Preferred Language *</label>
                     <Controller
@@ -298,22 +307,19 @@ const BasicInfoSection = ({ register, control, errors, loading, countryOptions, 
                         rules={{ required: "Language is required" }}
                         render={({ field }) => (
                             <Select
-                                // FIX: Find the object from options that matches the stored value
                                 value={languageOptions.find(c => c.value === field.value)}
-                                // FIX: On change, store only the value property
                                 onChange={val => field.onChange(val ? val.value : '')}
                                 options={languageOptions}
                                 placeholder="Select language"
                                 isClearable
                                 isDisabled={loading}
-                                className="react-select-container"
-                                classNamePrefix="react-select"
                             />
                         )}
                     />
                     {errors.preferredLanguage && <span className="text-red-500 text-sm mt-1">{errors.preferredLanguage.message}</span>}
                 </div>
 
+                {/* Hotel Amenities */}
                 <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Hotel Amenities</label>
                     <Controller
@@ -321,9 +327,7 @@ const BasicInfoSection = ({ register, control, errors, loading, countryOptions, 
                         control={control}
                         render={({ field }) => (
                             <CreatableSelect
-                                // FIX: Find full objects for each value in the stored array
                                 value={allAmenities.filter(c => field.value?.includes(c.value))}
-                                // FIX: On change, store an array of just the values
                                 onChange={options => field.onChange(options ? options.map(opt => opt.value) : [])}
                                 options={hotelAmenitiesOptions}
                                 placeholder="Select or type to add amenities"
@@ -346,6 +350,7 @@ const BasicInfoSection = ({ register, control, errors, loading, countryOptions, 
                     />
                 </div>
 
+                {/* Website */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Website URL</label>
                     <input
@@ -359,6 +364,7 @@ const BasicInfoSection = ({ register, control, errors, loading, countryOptions, 
                     {errors.website && <span className="text-red-500 text-sm mt-1">{errors.website.message}</span>}
                 </div>
 
+                {/* Google Maps Link */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Google Maps Link</label>
                     <input
@@ -374,6 +380,6 @@ const BasicInfoSection = ({ register, control, errors, loading, countryOptions, 
             </div>
         </div>
     );
-}
+};
 
 export default BasicInfoSection;

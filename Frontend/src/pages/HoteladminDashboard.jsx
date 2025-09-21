@@ -20,6 +20,8 @@ const CITY_API_URL = "https://api.countrystatecity.in/v1/countries/[ciso]/cities
 const PHONE_CODE_API_URL = "https://restcountries.com/v3.1/all";
 const API_KEY = import.meta.env.VITE_API_KEY;
 
+  const DEFAULT_COUNTRY = "IN";   // India
+  const DEFAULT_CITY = "Delhi";   // Default city for India
 
 const currencyOptions = [
     { value: "USD", label: "💵 USD - US Dollar" },
@@ -290,28 +292,145 @@ useEffect(() => {
 
 useEffect(() => {
     const fetchInitialData = async () => {
-        try {
-            const [countriesRes, phoneCodesRes] = await Promise.all([
-                axios.get(COUNTRY_API_URL, { headers: { "X-CSCAPI-KEY": API_KEY } }),
-                axios.get(PHONE_CODE_API_URL)
-            ]);
-            setCountryOptions(countriesRes.data.map(c => ({ value: c.iso2, label: c.name })));
-            setPhoneCodeOptions(phoneCodesRes.data.map(c => ({ value: c.idd?.root + (c.idd?.suffixes?.[0] || ""), label: `${c.flag} ${c.idd?.root}${c.idd?.suffixes?.[0] || ""}` })));
+    try {
+        const requests = [];
+        
+        // Only add countries request if API key exists
+        if (API_KEY) {
+            requests.push(
+                axios.get(COUNTRY_API_URL, { 
+                    headers: { "X-CSCAPI-KEY": API_KEY },
+                    timeout: 10000
+                }).catch(err => {
+                    console.warn("Country API failed:", err.message);
+                    return { data: [] }; // Return empty array on error
+                })
+            );
+        } else {
+            // If no API key, push an empty promise
+            requests.push(Promise.resolve({ data: [] }));
+        }
+        
+        // Always include phone codes request
+        requests.push(
+            axios.get(`${PHONE_CODE_API_URL}?fields=name,idd,flag`, {
+                timeout: 10000
+            }).catch(err => {
+                console.warn("Phone codes API failed:", err.message);
+                return { data: [] }; // Return empty array on error
+            })
+        );
 
-        } catch (err) { console.error("Failed to fetch initial data", err); }
-    };
+        const [countriesRes, phoneCodesRes] = await Promise.all(requests);
+        
+        // Handle country options
+        let countryOptionsData = [];
+        if (countriesRes.data && Array.isArray(countriesRes.data)) {
+            countryOptionsData = countriesRes.data.map(c => ({ 
+                value: c.iso2, 
+                label: c.name 
+            }));
+        } else {
+            // Fallback countries if API fails or no data
+            countryOptionsData = [
+                { value: "IN", label: "India" },
+                { value: "US", label: "United States" },
+                { value: "GB", label: "United Kingdom" },
+                { value: "CA", label: "Canada" },
+                { value: "AU", label: "Australia" },
+                { value: "DE", label: "Germany" },
+                { value: "FR", label: "France" }
+            ];
+        }
+        setCountryOptions(countryOptionsData);
+        
+        // Handle phone code options
+        let phoneOptionsData = [];
+        if (phoneCodesRes.data && Array.isArray(phoneCodesRes.data)) {
+            phoneOptionsData = phoneCodesRes.data
+                .filter(c => c.idd && c.idd.root)
+                .map(c => {
+                    const suffix = c.idd.suffixes?.[0] || "";
+                    const phoneCode = c.idd.root + suffix;
+                    return {
+                        value: phoneCode,
+                        label: `${c.flag || '🏳️'} ${phoneCode} - ${c.name.common}`
+                    };
+                })
+                .filter(opt => opt.value);
+        } else {
+            // Fallback phone codes
+            phoneOptionsData = [
+                { value: "+91", label: "🇮🇳 +91 - India" },
+                { value: "+1", label: "🇺🇸 +1 - United States" },
+                { value: "+44", label: "🇬🇧 +44 - United Kingdom" },
+                { value: "+61", label: "🇦🇺 +61 - Australia" },
+                { value: "+1", label: "🇨🇦 +1 - Canada" },
+                { value: "+49", label: "🇩🇪 +49 - Germany" },
+                { value: "+33", label: "🇫🇷 +33 - France" }
+            ];
+        }
+        setPhoneCodeOptions(phoneOptionsData);
+
+    } catch (err) { 
+        console.error("Failed to fetch initial data", err);
+        
+        // Final fallback in case everything fails
+        setCountryOptions([
+            { value: "IN", label: "India" },
+            { value: "US", label: "United States" }
+        ]);
+        
+        setPhoneCodeOptions([
+            { value: "+91", label: "🇮🇳 +91 - India" },
+            { value: "+1", label: "🇺🇸 +1 - United States" }
+        ]);
+    }
+};
     fetchInitialData();
 }, []);
 
 const selectedCountry = watch("country");
 useEffect(() => {
-    // FIX: The value is now a simple string 'IN', not an object.
     if (selectedCountry) {
-        axios.get(CITY_API_URL.replace("[ciso]", selectedCountry), { headers: { "X-CSCAPI-KEY": API_KEY } })
-            .then(res => setCityOptions(res.data.map(c => ({ value: c.name, label: c.name }))))
-            .catch(err => console.error(err));
+        // Only try to fetch cities if we have a valid API key
+        if (!API_KEY) {
+            console.warn("No API key available for city data");
+            setCityOptions([]);
+            return;
+        }
+
+        console.log("🌍 Fetching cities for country:", selectedCountry);
+        
+        axios.get(CITY_API_URL.replace("[ciso]", selectedCountry), { 
+            headers: { 
+                "X-CSCAPI-KEY": API_KEY, // Exact header name
+                "Accept": "application/json"
+            },
+            timeout: 8000
+        })
+        .then(res => {
+            if (res.data && Array.isArray(res.data)) {
+                console.log("✅ Cities loaded:", res.data.length, "cities for", selectedCountry);
+                setCityOptions(res.data.map(c => ({ 
+                    value: c.name, 
+                    label: c.name 
+                })));
+            } else {
+                console.warn("No city data received for", selectedCountry);
+                setCityOptions([]);
+            }
+        })
+        .catch(err => {
+            console.warn("❌ Failed to fetch cities for", selectedCountry, 
+                        "Status:", err.response?.status, 
+                        "Error:", err.response?.data);
+            setCityOptions([]);
+        });
+    } else {
+        setCityOptions([]);
     }
-}, [selectedCountry]);
+}, [selectedCountry, API_KEY]);
 
 useEffect(() => {
     const fetchSavedForm = async () => {
@@ -586,9 +705,11 @@ const validateFormData = (data, uploadedFiles, pendingFiles) => {
             if (!room.rate || room.rate <= 0) {
                 errors.push(`Room Type ${index + 1}: Base Rate is required`);
             }
-            if (!room.roomNumbers || room.roomNumbers.trim() === '') {
-                errors.push(`Room Type ${index + 1}: Room Numbers are required`);
-            }
+            if (!room.roomNumbers || 
+            (typeof room.roomNumbers === 'string' && room.roomNumbers.trim() === '') ||
+            (Array.isArray(room.roomNumbers) && room.roomNumbers.length === 0)) {
+            errors.push(`Room Type ${index + 1}: Room Numbers are required`);
+        }
         });
     } else {
         errors.push("At least one room type is required");
@@ -669,7 +790,11 @@ const getSectionValidationStatus = (data, uploadedFiles, pendingFiles, sectionId
                     if (!room.maxGuests || room.maxGuests <= 0) errors.push(`Room ${index + 1} Max Guests`);
                     if (!room.rateType) errors.push(`Room ${index + 1} Rate Type`);
                     if (!room.rate || room.rate <= 0) errors.push(`Room ${index + 1} Base Rate`);
-                    if (!room.roomNumbers || room.roomNumbers.trim() === '') errors.push(`Room ${index + 1} Room Numbers`);
+                    if (!room.roomNumbers || 
+                (typeof room.roomNumbers === 'string' && room.roomNumbers.trim() === '') ||
+                (Array.isArray(room.roomNumbers) && room.roomNumbers.length === 0)) {
+                errors.push(`Room ${index + 1} Room Numbers`);
+            }
                 });
             } else {
                 errors.push("At least one room type");
