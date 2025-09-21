@@ -553,7 +553,7 @@ export const getDashboardData = async (req, res) => {
             item: {
               select: {
                 name: true,
-                price: true
+                basePrice: true
               }
             }
           }

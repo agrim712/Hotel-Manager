@@ -25,6 +25,7 @@ export const getMenuCategories = async (req, res) => {
       },
       orderBy: { sortOrder: 'asc' }
     });
+    console.log(categories);
 
     res.json({
       success: true,
@@ -125,51 +126,52 @@ export const updateMenuCategory = async (req, res) => {
 };
 
 export const deleteMenuCategory = async (req, res) => {
-  try {
-    const { hotelId } = req.user;
-    const { id } = req.params;
-
-    // Check if category has items
-    const categoryWithItems = await prisma.menuCategory.findUnique({
-      where: { id },
-      include: { menuItems: true }
-    });
-
-    if (categoryWithItems.menuItems.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Cannot delete category with existing items. Please delete all items first."
-      });
-    }
-
-    await prisma.menuCategory.delete({
-      where: { 
-        id,
-        hotelId 
-      }
-    });
-
-    res.json({
-      success: true,
-      message: "Category deleted successfully"
-    });
-  } catch (error) {
-    console.error("Error deleting menu category:", error);
-    if (error.code === 'P2025') {
-      res.status(404).json({
-        success: false,
-        message: "Category not found"
-      });
-    } else {
-      res.status(500).json({
-        success: false,
-        message: "Failed to delete category",
-        error: error.message
-      });
-    }
-  }
-};
-
+    try {
+      const { hotelId } = req.user;
+      const { id } = req.params;
+  
+      // Check if the category exists and belongs to the hotel
+      const existingCategory = await prisma.menuCategory.findFirst({
+        where: { id, hotelId }
+      });
+  
+      if (!existingCategory) {
+        return res.status(404).json({
+          success: false,
+          message: "Category not found or does not belong to your hotel."
+        });
+      }
+  
+      // Delete all menu items associated with this category
+      await prisma.menuItem.deleteMany({
+        where: { categoryId: id }
+      });
+  
+      // Now that all child items are deleted, delete the category itself
+      await prisma.menuCategory.delete({
+        where: { id }
+      });
+  
+      res.json({
+        success: true,
+        message: "Category and all its associated items deleted successfully."
+      });
+    } catch (error) {
+      console.error("Error deleting menu category:", error);
+      if (error.code === 'P2025') {
+        res.status(404).json({
+          success: false,
+          message: "Category not found."
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: "Failed to delete category.",
+          error: error.message
+        });
+      }
+    }
+  };
 // ===================== MENU ITEM CONTROLLERS =====================
 
 export const getMenuItems = async (req, res) => {
@@ -179,7 +181,10 @@ export const getMenuItems = async (req, res) => {
 
     const whereClause = { hotelId };
     if (categoryId) whereClause.categoryId = categoryId;
-    if (isAvailable !== undefined) whereClause.isAvailable = isAvailable === 'true';
+
+    if (isAvailable !== undefined) {
+           whereClause.isAvailable = isAvailable === 'true' || isAvailable === true;
+    }
 
     const items = await prisma.menuItem.findMany({
       where: whereClause,
@@ -245,6 +250,7 @@ export const getMenuItem = async (req, res) => {
   }
 };
 
+
 export const createMenuItem = async (req, res) => {
   try {
     const { hotelId } = req.user;
@@ -255,20 +261,26 @@ export const createMenuItem = async (req, res) => {
       categoryId, 
       prepTime, 
       spiceLevel, 
-      allergens, 
+      allergens,
+      code,
+      numCode, 
       vegetarian, 
       calories,
-      sortOrder 
+      sortOrder ,
+      isAvailable
     } = req.body;
 
+    console.log(req.body)
+
+    // 1. Validate required fields
     if (!name || !basePrice || !categoryId) {
       return res.status(400).json({
         success: false,
-        message: "Name, price, and category are required"
+        message: "Name, basePrice, and category are required."
       });
     }
 
-    // Verify category exists
+    // 2. Verify category exists for the given hotel
     const category = await prisma.menuCategory.findFirst({
       where: { id: categoryId, hotelId }
     });
@@ -276,27 +288,35 @@ export const createMenuItem = async (req, res) => {
     if (!category) {
       return res.status(400).json({
         success: false,
-        message: "Category not found"
+        message: "Category not found or does not belong to your hotel."
       });
     }
 
+    // 3. Prepare data with proper type conversions and defaults
+    const itemData = {
+      name,
+      description: description || null,
+      basePrice: parseFloat(basePrice),
+      categoryId: categoryId,
+      hotelId,
+      prepTime: prepTime ? parseInt(prepTime) : 15,
+      spiceLevel: spiceLevel || "Mild",
+      code: code || null,
+      numCode: numCode ? parseInt(numCode) : null,
+      allergens: allergens ? JSON.parse(allergens) : [],
+      vegetarian: vegetarian === 'true' || vegetarian === true,
+      calories: calories ? parseInt(calories) : null,
+      sortOrder: sortOrder ? parseInt(sortOrder) : 0,
+      isAvailable: isAvailable !== undefined ? (isAvailable === 'true') : undefined
+    };
+
+    // 4. Create the menu item
     const item = await prisma.menuItem.create({
-      data: {
-        name,
-        description: description || null,
-        basePrice: parseFloat(basePrice),
-        categoryId,
-        hotelId,
-        prepTime: prepTime ? parseInt(prepTime) : 15,
-        spiceLevel: spiceLevel || "Mild",
-        allergens: allergens ? JSON.parse(allergens) : [],
-        vegetarian: vegetarian === 'true' || vegetarian === true,
-        calories: calories ? parseInt(calories) : null,
-        sortOrder: sortOrder || 0
-      }
+      data: itemData
     });
 
-    // Handle image uploads
+    // 5. Handle image uploads
+    const createdImages = [];
     if (req.files && req.files.length > 0) {
       const imagePromises = req.files.map((file, index) => 
         prisma.menuItemImage.create({
@@ -308,11 +328,11 @@ export const createMenuItem = async (req, res) => {
           }
         })
       );
-      await Promise.all(imagePromises);
+      createdImages = await Promise.all(imagePromises);
     }
 
-    // Return item with images
-    const itemWithImages = await prisma.menuItem.findUnique({
+    // 6. Return the created item with all relations
+    const itemWithRelations = await prisma.menuItem.findUnique({
       where: { id: item.id },
       include: {
         category: true,
@@ -323,62 +343,80 @@ export const createMenuItem = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      data: itemWithImages,
-      message: "Menu item created successfully"
+      data: itemWithRelations,
+      message: "Menu item created successfully."
     });
+
   } catch (error) {
     console.error("Error creating menu item:", error);
     if (error.code === 'P2002') {
       res.status(400).json({
         success: false,
-        message: "Menu item name already exists in this category"
+        message: "Menu item name already exists in this category."
       });
     } else {
       res.status(500).json({
         success: false,
-        message: "Failed to create menu item",
+        message: "Failed to create menu item. Please check the data provided.",
         error: error.message
       });
     }
   }
 };
 
+/**
+ * Updates an existing menu item.
+ */
 export const updateMenuItem = async (req, res) => {
   try {
     const { hotelId } = req.user;
     const { id } = req.params;
     const updates = req.body;
 
-    const parsedUpdates = {
-      name: updates.name,
-      description: updates.description || null,
-      basePrice: updates.basePrice ? parseFloat(updates.basePrice) : undefined,
-      prepTime: updates.prepTime ? parseInt(updates.prepTime) : undefined,
-      spiceLevel: updates.spiceLevel || "Mild",
-      allergens: updates.allergens ? JSON.parse(updates.allergens) : [],
-      vegetarian: updates.vegetarian === 'true' || updates.vegetarian === true,
-      calories: updates.calories ? parseInt(updates.calories) : null,
-      sortOrder: updates.sortOrder || 0,
-      isAvailable: updates.isAvailable !== undefined ? updates.isAvailable : true
-    };
-
-    const item = await prisma.menuItem.update({
-      where: { 
-        id,
-        hotelId 
-      },
-      data: parsedUpdates
+    console.log(updates)
+    
+    // 1. Find the item to ensure it exists and belongs to the hotel
+    const existingItem = await prisma.menuItem.findFirst({
+        where: { id: id, hotelId }
     });
 
-    // Handle new image uploads
-    if (req.files && req.files.length > 0) {
-      // Mark old images as non-primary
-      await prisma.menuItemImage.updateMany({
-        where: { itemId: item.id },
-        data: { isPrimary: false }
-      });
+    if (!existingItem) {
+        return res.status(404).json({
+            success: false,
+            message: "Menu item not found or does not belong to your hotel."
+        });
+    }
 
-      // Add new images
+    // 2. Prepare data for update with proper type conversions
+    const parsedUpdates = {
+      name: updates.name,
+      description: updates.description === 'null' ? null : updates.description,
+      basePrice: updates.basePrice ? parseFloat(updates.basePrice) : undefined,
+      prepTime: updates.prepTime ? parseInt(updates.prepTime) : undefined,
+      spiceLevel: updates.spiceLevel || undefined,
+      allergens: updates.allergens ? JSON.parse(updates.allergens) : undefined,
+      vegetarian: updates.vegetarian !== undefined ? (updates.vegetarian === 'true') : undefined,
+      calories: updates.calories ? parseInt(updates.calories) : null,
+      sortOrder: updates.sortOrder !== undefined ? parseInt(updates.sortOrder) : undefined,
+      isAvailable: updates.isAvailable !== undefined ? (updates.isAvailable === 'true') : undefined,
+      code: updates.code === 'null' ? null : updates.code,
+      numCode: updates.numCode ? parseInt(updates.numCode) : undefined,
+    };
+
+    // 3. Clean up undefined values
+    Object.keys(parsedUpdates).forEach(key => parsedUpdates[key] === undefined && delete parsedUpdates[key]);
+
+    // 4. Update the menu item
+    const item = await prisma.menuItem.update({
+      where: { id: id },
+      data: parsedUpdates
+    });
+    
+    // 5. Handle image uploads
+    if (req.files && req.files.length > 0) {
+      // Logic to handle images needs to be more robust.
+      // Option A: Delete existing images and upload new ones.
+      await prisma.menuItemImage.deleteMany({ where: { itemId: item.id } });
       const imagePromises = req.files.map((file, index) => 
         prisma.menuItemImage.create({
           data: {
@@ -392,7 +430,7 @@ export const updateMenuItem = async (req, res) => {
       await Promise.all(imagePromises);
     }
 
-    // Return updated item with images
+    // 6. Return the updated item with all relations
     const updatedItem = await prisma.menuItem.findUnique({
       where: { id: item.id },
       include: {
@@ -405,25 +443,25 @@ export const updateMenuItem = async (req, res) => {
     res.json({
       success: true,
       data: updatedItem,
-      message: "Menu item updated successfully"
+      message: "Menu item updated successfully."
     });
+
   } catch (error) {
     console.error("Error updating menu item:", error);
     if (error.code === 'P2025') {
       res.status(404).json({
         success: false,
-        message: "Menu item not found"
+        message: "Menu item not found."
       });
     } else {
       res.status(500).json({
         success: false,
-        message: "Failed to update menu item",
+        message: "Failed to update menu item. Please check the data provided.",
         error: error.message
       });
     }
   }
 };
-
 export const deleteMenuItem = async (req, res) => {
   try {
     const { hotelId } = req.user;
@@ -431,7 +469,7 @@ export const deleteMenuItem = async (req, res) => {
 
     // Check if item is used in any orders
     const orderItems = await prisma.orderItem.findMany({
-      where: { itemId: parseInt(id) }
+      where: { itemId: id }
     });
 
     if (orderItems.length > 0) {
@@ -528,12 +566,12 @@ export const getMenuModifiers = async (req, res) => {
 export const createMenuModifier = async (req, res) => {
   try {
     const { hotelId } = req.user;
-    const { name, price, type, isRequired, itemId } = req.body;
+    const { name, basePrice, type, isRequired, itemId } = req.body;
 
-    if (!name || !price || !type || !itemId) {
+    if (!name || !basePrice || !type || !itemId) {
       return res.status(400).json({
         success: false,
-        message: "Name, price, type, and item ID are required"
+        message: "Name, basePrice, type, and item ID are required"
       });
     }
 
@@ -552,7 +590,7 @@ export const createMenuModifier = async (req, res) => {
     const modifier = await prisma.menuModifier.create({
       data: {
         name,
-        price: parseFloat(price),
+        price: parseFloat(basePrice),
         type,
         isRequired: isRequired === 'true' || isRequired === true,
         itemId,
@@ -579,7 +617,7 @@ export const updateMenuModifier = async (req, res) => {
   try {
     const { hotelId } = req.user;
     const { id } = req.params;
-    const { name, price, type, isRequired } = req.body;
+    const { name, basePrice, type, isRequired } = req.body;
 
     const modifier = await prisma.menuModifier.update({
       where: { 
@@ -588,7 +626,7 @@ export const updateMenuModifier = async (req, res) => {
       },
       data: {
         name,
-        price: price ? parseFloat(price) : undefined,
+        price: basePrice ? parseFloat(basePrice) : undefined,
         type,
         isRequired: isRequired !== undefined ? isRequired : false
       }
@@ -681,12 +719,12 @@ export const getComboItems = async (req, res) => {
 export const createComboItem = async (req, res) => {
   try {
     const { hotelId } = req.user;
-    const { name, description, price, items } = req.body;
+    const { name, description, basePrice, items } = req.body;
 
-    if (!name || !price || !items) {
+    if (!name || !basePrice || !items) {
       return res.status(400).json({
         success: false,
-        message: "Name, price, and items are required"
+        message: "Name, basePrice, and items are required"
       });
     }
 
@@ -694,7 +732,7 @@ export const createComboItem = async (req, res) => {
       data: {
         name,
         description: description || null,
-        price: parseFloat(price),
+        price: parseFloat(basePrice),
         items: JSON.parse(items),
         hotelId
       }
@@ -719,7 +757,7 @@ export const updateComboItem = async (req, res) => {
   try {
     const { hotelId } = req.user;
     const { id } = req.params;
-    const { name, description, price, items } = req.body;
+    const { name, description, basePrice, items } = req.body;
 
     const combo = await prisma.comboItem.update({
       where: { 
@@ -729,7 +767,7 @@ export const updateComboItem = async (req, res) => {
       data: {
         name,
         description: description || null,
-        price: price ? parseFloat(price) : undefined,
+        price: basePrice ? parseFloat(basePrice) : undefined,
         items: items ? JSON.parse(items) : undefined
       }
     });

@@ -18,6 +18,7 @@ export const getTables = async (req, res) => {
       where: whereClause,
       include: {
         area: true,
+        waiter: true,
         orders: {
           where: {
             status: {
@@ -107,7 +108,7 @@ export const getTable = async (req, res) => {
 export const createTable = async (req, res) => {
   try {
     const { hotelId } = req.user;
-    const { number, capacity, areaId } = req.body;
+    const { number, capacity, areaId, waiterId } = req.body;
 
     if (!number || !capacity) {
       return res.status(400).json({
@@ -132,16 +133,36 @@ export const createTable = async (req, res) => {
       });
     }
 
+    // Verify waiter exists if provided
+    if (waiterId) {
+      const waiter = await prisma.waiter.findFirst({
+        where: {
+          id: waiterId,
+          hotelId,
+          isActive: true
+        }
+      });
+
+      if (!waiter) {
+        return res.status(400).json({
+          success: false,
+          message: "Waiter not found or inactive"
+        });
+      }
+    }
+
     const table = await prisma.table.create({
       data: {
         number,
         capacity: parseInt(capacity),
         areaId: areaId || null,
+        waiterId: waiterId || null,
         hotelId,
         status: "AVAILABLE"
       },
       include: {
-        area: true
+        area: true,
+        waiter: true
       }
     });
 
@@ -164,7 +185,7 @@ export const updateTable = async (req, res) => {
   try {
     const { hotelId } = req.user;
     const { id } = req.params;
-    const { number, capacity, areaId } = req.body;
+    const { number, capacity, areaId, waiterId } = req.body;
 
     // Check if table number already exists in the area (excluding current table)
     if (number) {
@@ -185,6 +206,24 @@ export const updateTable = async (req, res) => {
       }
     }
 
+    // Verify waiter exists if provided
+    if (waiterId) {
+      const waiter = await prisma.waiter.findFirst({
+        where: {
+          id: waiterId,
+          hotelId,
+          isActive: true
+        }
+      });
+
+      if (!waiter) {
+        return res.status(400).json({
+          success: false,
+          message: "Waiter not found or inactive"
+        });
+      }
+    }
+
     const table = await prisma.table.update({
       where: { 
         id,
@@ -193,10 +232,12 @@ export const updateTable = async (req, res) => {
       data: {
         number,
         capacity: capacity ? parseInt(capacity) : undefined,
-        areaId: areaId !== undefined ? areaId : undefined
+        areaId: areaId !== undefined ? areaId : undefined,
+        waiterId: waiterId !== undefined ? waiterId : undefined
       },
       include: {
-        area: true
+        area: true,
+        waiter: true
       }
     });
 

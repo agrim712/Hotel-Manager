@@ -129,6 +129,7 @@ model Hotel {
   customers      Customer[]
   tables         Table[]
   areas          Area[]
+  waiters        Waiter[]
   orders         Order[]
   inventoryItems InventoryItem[]
   suppliers      Supplier[]
@@ -476,50 +477,6 @@ model SavedForm {
 
   @@unique([userId])
 }
-
-model R_Category {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  description String?
-  items       R_Item[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model R_Item {
-  id          Int         @id @default(autoincrement())
-  name        String
-  price       Float
-  description String?
-  spiceLevel  String      @default("Mild")
-  allergens   String[]
-  vegetarian  Boolean     @default(false)
-  available   Boolean     @default(true)
-  prepTime    Int         @default(15)
-  category    R_Category  @relation(fields: [categoryId], references: [id])
-  categoryId  Int
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  code        String
-  numCode     Int  
-  orderItems  OrderItem[]
-
-  // Relation to images
-  itemImage   ItemImage[]
-
-  @@unique([name, categoryId])
-}
-
-model ItemImage {
-  id        Int       @id @default(autoincrement())
-  altText   String?   // optional description
-  isPrimary Boolean   @default(false)
-  url       String    // store relative path like "uploads/filename.jpg"
-  itemId    Int
-  item      R_Item    @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-}
    
 model StaffUser {
   id        String   @id @default(cuid())
@@ -529,6 +486,20 @@ model StaffUser {
   role      String // e.g. "Front Office", "Housekeeping"
   hotelId   String
   hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Waiter {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  employeeId String? // Employee ID for tracking
+  isActive  Boolean  @default(true)
+  hotelId   String
+  hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  tables    Table[]  // Tables assigned to this waiter
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -554,6 +525,8 @@ model Table {
   capacity  Int
   areaId    String?
   area      Area?    @relation(fields: [areaId], references: [id])
+  waiterId  String?
+  waiter    Waiter?  @relation(fields: [waiterId], references: [id])
   hotelId   String
   hotel     Hotel    @relation(fields: [hotelId], references: [id])
   orders    Order[]
@@ -596,8 +569,8 @@ model OrderItem {
   id        String   @id @default(cuid())
   orderId   String
   order     Order    @relation(fields: [orderId], references: [id])
-  itemId    Int
-  item      R_Item   @relation(fields: [itemId], references: [id])
+  itemId    String
+  item      MenuItem   @relation(fields: [itemId], references: [id])
   quantity  Int      @default(1)
   notes     String?  // modifiers like "extra cheese", "no onion"
   price     Float
@@ -749,6 +722,8 @@ model MenuItem {
   hotel           Hotel         @relation(fields: [hotelId], references: [id])
   images          MenuItemImage[]
   modifiers       MenuModifier[]
+  code            String?
+  numCode         Int?  
   combos          ComboItem[]
   isAvailable     Boolean       @default(true)
   prepTime        Int           @default(15) // minutes
@@ -759,6 +734,7 @@ model MenuItem {
   sortOrder       Int           @default(0)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+  orderItems      OrderItem[]
 
   @@unique([name, categoryId])
 }
@@ -867,6 +843,8 @@ model InventoryTransaction {
   hotel       Hotel    @relation(fields: [hotelId], references: [id])
   createdAt   DateTime @default(now())
 }
+
+
 
 model PurchaseOrder {
   id          String   @id @default(cuid())

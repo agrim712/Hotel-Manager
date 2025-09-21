@@ -72,7 +72,7 @@ export const getOrders = async (req, res) => {
           orderItems: {
             include: {
               item: {
-                select: { id: true, name: true, price: true }
+                select: { id: true, name: true, basePrice: true }
               },
               modifiers: {
                 include: {
@@ -194,6 +194,8 @@ export const createOrder = async (req, res) => {
       });
     }
 
+    console.log(items)
+
     // Generate order number
     const orderNumber = await generateOrderNumber(hotelId);
 
@@ -213,7 +215,7 @@ export const createOrder = async (req, res) => {
         });
       }
 
-      let itemTotal = menuItem.basePrice * item.quantity;
+      let itemTotal = parseFloat(menuItem.basePrice) * parseInt(item.quantity);
       
       // Add modifier costs
       if (item.modifiers && item.modifiers.length > 0) {
@@ -222,21 +224,20 @@ export const createOrder = async (req, res) => {
             where: { id: modifierId, hotelId }
           });
           if (modifier) {
-            itemTotal += modifier.price * item.quantity;
+            itemTotal += parseFloat(modifier.price) *parseInt(item.quantity);
           }
         }
       }
 
       totalAmount += itemTotal;
       orderItemsData.push({
-        itemId: parseInt(item.itemId),
+        itemId: item.itemId,
         quantity: item.quantity,
         price: itemTotal,
         notes: item.notes || null
       });
     }
 
-    // Create order with items
     const order = await prisma.order.create({
       data: {
         orderNumber,
@@ -248,27 +249,22 @@ export const createOrder = async (req, res) => {
         estimatedTime: estimatedTime ? parseInt(estimatedTime) : null,
         orderItems: {
           create: orderItemsData
+        },
+        kitchenOrders: {
+          create: {
+            status: "PENDING",
+            priority: "NORMAL",
+            estimatedTime: estimatedTime ? parseInt(estimatedTime) : null,
+            hotelId: hotelId
+          }
         }
       },
       include: {
-        orderItems: {
-          include: {
-            item: true
-          }
-        }
+        orderItems: { include: { item: true } },
+        kitchenOrders: true
       }
     });
-
-    // Create kitchen order
-    await prisma.kitchenOrder.create({
-      data: {
-        orderId: order.id,
-        status: "PENDING",
-        priority: "NORMAL",
-        estimatedTime: estimatedTime ? parseInt(estimatedTime) : null
-      }
-    });
-
+    
     // Update table status if dine-in
     if (type === 'dine-in' && tableId) {
       await prisma.table.update({
@@ -522,17 +518,16 @@ export const addOrderItem = async (req, res) => {
       }
     }
 
-    // Create order item
     const orderItem = await prisma.orderItem.create({
       data: {
         orderId,
-        itemId: parseInt(itemId),
+        itemId,
         quantity: parseInt(quantity),
         price: itemPrice,
         notes: notes || null
       }
     });
-
+    
     // Add modifiers
     if (modifiers && modifiers.length > 0) {
       const modifierPromises = modifiers.map(modifierId =>
@@ -545,6 +540,8 @@ export const addOrderItem = async (req, res) => {
       );
       await Promise.all(modifierPromises);
     }
+    
+    
 
     res.status(201).json({
       success: true,
@@ -587,15 +584,13 @@ export const updateOrderItem = async (req, res) => {
     }
 
     const orderItem = await prisma.orderItem.update({
-      where: { 
-        id: itemId,
-        orderId 
-      },
+      where: { id: itemId }, // ✅ only `id` works (no composite key)
       data: {
         quantity: quantity ? parseInt(quantity) : undefined,
         notes: notes !== undefined ? notes : undefined
       }
     });
+    
 
     res.json({
       success: true,
@@ -647,14 +642,10 @@ export const removeOrderItem = async (req, res) => {
     await prisma.orderModifier.deleteMany({
       where: { orderItemId: itemId }
     });
-
-    // Delete order item
     await prisma.orderItem.delete({
-      where: { 
-        id: itemId,
-        orderId 
-      }
+      where: { id: itemId } // ✅ only `id`
     });
+
 
     res.json({
       success: true,

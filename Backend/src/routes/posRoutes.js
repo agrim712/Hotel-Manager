@@ -6,6 +6,7 @@ import { upload } from "../middleware/upload.js";
 import * as menuController from "../controllers/POS/menuController.js";
 import * as orderController from "../controllers/POS/orderController.js";
 import * as tableController from "../controllers/POS/tableController.js";
+import * as waiterController from "../controllers/POS/waiterController.js";
 import * as billingController from "../controllers/POS/billingController.js";
 import * as inventoryController from "../controllers/POS/inventoryController.js";
 import * as kitchenController from "../controllers/POS/kitchenController.js";
@@ -80,6 +81,17 @@ router.delete("/areas/:id", requireManagerOrAdmin, tableController.deleteArea);
 
 router.put("/tables/:id/status", requireStaffOrAbove, tableController.updateTableStatus);
 router.get("/tables/available", tableController.getAvailableTables);
+
+// ===================== WAITER MANAGEMENT ROUTES =====================
+router.get("/waiters", waiterController.getWaiters);
+router.get("/waiters/:id", waiterController.getWaiter);
+router.post("/waiters", requireManagerOrAdmin, waiterController.createWaiter);
+router.put("/waiters/:id", requireManagerOrAdmin, waiterController.updateWaiter);
+router.delete("/waiters/:id", requireManagerOrAdmin, waiterController.deleteWaiter);
+
+router.post("/waiters/:id/assign-tables", requireManagerOrAdmin, waiterController.assignTablesToWaiter);
+router.post("/waiters/:id/remove-tables", requireManagerOrAdmin, waiterController.removeTablesFromWaiter);
+router.get("/waiters/:id/tables", waiterController.getWaiterTables);
 
 // ===================== BILLING & PAYMENT ROUTES =====================
 router.get("/bills", billingController.getBills);

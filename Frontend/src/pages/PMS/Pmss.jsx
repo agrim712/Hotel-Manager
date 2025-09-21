@@ -29,14 +29,15 @@ const Pmss = () => {
   const [isPOSOpen, setIsPOSOpen] = useState(false);
   const { products, loading: productsLoading } = useProductContext();
   const { hotel, userRole, loading: authLoading } = useAuth();
-  const isLoading = authLoading || productsLoading || !userRole || !hotel;
+  // Only show loading while data is actually being fetched, not while values are null/undefined
+  const isLoading = authLoading || productsLoading;
 
   useEffect(() => {
-    console.log("🔄 Loading State:", { authLoading, productsLoading });
-    console.log("🟡 Role:", userRole);
-    console.log("🟢 Hotel:", hotel);
-    console.log("🔵 Products:", products);
-  }, [isLoading, userRole, hotel, products, authLoading, productsLoading]);
+    // Minimal debug logs; remove if noisy
+    if (authLoading || productsLoading) {
+      console.log("🔄 Loading State:", { authLoading, productsLoading });
+    }
+  }, [authLoading, productsLoading]);
 
   if (isLoading) {
     return <Spinner />;

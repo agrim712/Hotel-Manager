@@ -12,7 +12,8 @@ import {
   RefreshCw,
   Settings,
   Timer,
-  Bell
+  Bell,
+  Printer
 } from 'lucide-react';
 
 const KitchenDisplaySystem = () => {
@@ -80,6 +81,84 @@ const KitchenDisplaySystem = () => {
       }
     } catch (error) {
       console.error('Error updating order status:', error);
+    }
+  };
+
+  const printReceipt = async (order) => {
+    try {
+      const token = localStorage.getItem('token');
+      // Fetch latest order data for accuracy
+      const response = await fetch(`http://localhost:5000/api/pos/orders/${order.order.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = response.ok ? await response.json() : { data: order.order };
+      const ord = data.data || order.order;
+
+      const printWindow = window.open('', '_blank');
+      const hotelName = (ord.hotel && ord.hotel.name) || 'Hotel';
+      const customerName = ord.customer?.name || 'Walk-in Customer';
+      const tableText = ord.table?.number ? `Table ${ord.table.number}` : (ord.type === 'dine-in' ? 'Table N/A' : ord.type === 'takeaway' ? 'Takeaway' : 'Delivery');
+      const itemsHtml = (ord.orderItems || []).map((item) => `
+        <tr>
+          <td>${item.quantity} x ${(item.item && item.item.name) || 'Item'}</td>
+          <td style="text-align:right">₹${(item.price || 0).toFixed(2)}</td>
+        </tr>
+        ${item.notes ? `<tr><td colspan="2" style="font-size:12px;color:#555">Note: ${item.notes}</td></tr>` : ''}
+      `).join('');
+
+      const subtotal = (ord.orderItems || []).reduce((s, it) => s + (it.price || 0), 0);
+      const taxes = ord.tax || 0;
+      const service = ord.serviceCharge || 0;
+      const discount = ord.discounts?.reduce((s, d) => s + (d.type === 'PERCENTAGE' ? subtotal * d.value / 100 : d.value), 0) || 0;
+      const total = subtotal - discount + taxes + service;
+
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Receipt #${ord.orderNumber}</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; }
+              .header { text-align: center; }
+              .meta { margin: 10px 0; font-size: 14px; }
+              table { width: 100%; border-collapse: collapse; }
+              td { padding: 6px 0; border-bottom: 1px dashed #ccc; }
+              .totals td { border-bottom: none; }
+              .right { text-align: right; }
+              @media print { body { margin: 0; } }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h2>${hotelName}</h2>
+              <div>Receipt</div>
+            </div>
+            <div class="meta">
+              <div><strong>Order #:</strong> ${ord.orderNumber}</div>
+              <div><strong>Customer:</strong> ${customerName}</div>
+              <div><strong>${ord.type === 'dine-in' ? 'Table' : 'Type'}:</strong> ${tableText}</div>
+              <div><strong>Date:</strong> ${new Date(ord.createdAt).toLocaleString()}</div>
+            </div>
+            <table>
+              <tbody>
+                ${itemsHtml || '<tr><td colspan="2">No items</td></tr>'}
+                <tr class="totals"><td class="right"><strong>Subtotal</strong></td><td class="right">₹${subtotal.toFixed(2)}</td></tr>
+                <tr class="totals"><td class="right"><strong>Discount</strong></td><td class="right">-₹${discount.toFixed(2)}</td></tr>
+                <tr class="totals"><td class="right"><strong>Tax</strong></td><td class="right">₹${taxes.toFixed(2)}</td></tr>
+                <tr class="totals"><td class="right"><strong>Service</strong></td><td class="right">₹${service.toFixed(2)}</td></tr>
+                <tr class="totals"><td class="right"><strong>Total</strong></td><td class="right">₹${total.toFixed(2)}</td></tr>
+              </tbody>
+            </table>
+            <div style="text-align:center;margin-top:16px;font-size:12px;">Thank you! Visit again.</div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    } catch (e) {
+      console.error('Error printing receipt:', e);
     }
   };
 
@@ -380,6 +459,13 @@ const KitchenDisplaySystem = () => {
                           Mark Served
                         </button>
                       )}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); printReceipt(order); }}
+                        className="px-3 py-2 border border-gray-300 text-gray-700 text-sm rounded hover:bg-gray-50"
+                        title="Print Receipt"
+                      >
+                        <Printer className="h-4 w-4" />
+                      </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

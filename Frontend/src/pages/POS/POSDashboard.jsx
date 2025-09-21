@@ -32,7 +32,9 @@ const POSDashboard = () => {
       activeTables: 0,
       pendingKitchenOrders: 0,
       queueLength: 0,
-      lowStockItems: 0
+      lowStockItems: 0,
+      activeWaiters: 0,
+      totalWaiters: 0
     },
     recentOrders: []
   });
@@ -67,6 +69,7 @@ const POSDashboard = () => {
     { id: 'overview', label: 'Overview', icon: BarChart3 },
     { id: 'orders', label: 'Orders', icon: ShoppingCart },
     { id: 'tables', label: 'Tables', icon: Users },
+    { id: 'waiters', label: 'Waiters', icon: Users },
     { id: 'kitchen', label: 'Kitchen', icon: ChefHat },
     { id: 'inventory', label: 'Inventory', icon: Package },
     { id: 'reports', label: 'Reports', icon: BarChart3 },
@@ -87,6 +90,13 @@ const POSDashboard = () => {
       icon: Users,
       color: 'bg-green-500',
       onClick: () => navigate('/pos/tables')
+    },
+    {
+      title: 'Waiter Management',
+      description: 'Manage waiters and assignments',
+      icon: Users,
+      color: 'bg-teal-500',
+      onClick: () => navigate('/pos/waiters')
     },
     {
       title: 'Kitchen Orders',
@@ -153,6 +163,20 @@ const POSDashboard = () => {
       icon: Package,
       color: 'text-yellow-600',
       bgColor: 'bg-yellow-50'
+    },
+    {
+      title: 'Active Waiters',
+      value: dashboardData.today.activeWaiters,
+      icon: Users,
+      color: 'text-teal-600',
+      bgColor: 'bg-teal-50'
+    },
+    {
+      title: 'Total Waiters',
+      value: dashboardData.today.totalWaiters,
+      icon: Users,
+      color: 'text-cyan-600',
+      bgColor: 'bg-cyan-50'
     }
   ];
 
@@ -173,7 +197,7 @@ const POSDashboard = () => {
     <POSLayout title="POS Dashboard">
       <div className="space-y-6">
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {statsCards.map((stat, index) => (
             <div key={index} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between">

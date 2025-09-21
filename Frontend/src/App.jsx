@@ -20,6 +20,7 @@ import CreateReservation from './pages/PMS/CreateReservation';
 import ComplimentaryReservation from './pages/PMS/Complimentary';
 import OutOfOrderRoomForm from './pages/PMS/OutOfOrder';
 import GroupReservationForm from "./pages/PMS/GroupReservation";
+
 import GuestListHeader from './pages/PMS/Guests';
 import StayViewPage from './pages/PMS/stayview';
 import RoomsView from './pages/PMS/RoomsView';
@@ -48,12 +49,14 @@ import AccountingDashboard from './pages/PMS/Accounting';
 import FolioCreation from './pages/PMS/CustomerFolio';
 
 // Import POS Components
+import WaiterManagement from './pages/POS/WaiterManagement';
 import POSDashboard from './pages/POS/POSDashboard';
-import OrderManagement from './pages/POS/OrderManagement';
+import OrderManagement from './pages/POS/order/OrderManagement';
 import TableManagement from './pages/POS/TableManagement';
 import KitchenDisplaySystem from './pages/POS/KitchenDisplaySystem';
 import InventoryManagement from './pages/POS/InventoryManagement';
 import MenuCreation from './pages/POS/MenuCreation';
+import Billing from './pages/POS/Billing';
 
 axios.defaults.baseURL = 'http://localhost:5000';
 
@@ -130,9 +133,12 @@ const ProductRoutes = () => {
           <Route path="/pos/orders" element={<OrderManagement />} />
           <Route path="/pos/orders/new" element={<OrderManagement />} />
           <Route path="/pos/tables" element={<TableManagement />} />
+          <Route path="/pos/waiters" element={<WaiterManagement />} />
           <Route path="/pos/kitchen" element={<KitchenDisplaySystem />} />
           <Route path="/pos/inventory" element={<InventoryManagement />} />
           <Route path="/pos/menu" element={<MenuCreation />} />
+          <Route path="/pos/billing" element={<Billing />} />
+          <Route path="/pos/billing/:orderId" element={<Billing />} />
           
           {/* Restaurant POS Routes */}
           <Route path="/restaurant/pos" element={<POSDashboard />} />
@@ -142,6 +148,9 @@ const ProductRoutes = () => {
           <Route path="/restaurant/pos/kitchen" element={<KitchenDisplaySystem />} />
           <Route path="/restaurant/pos/inventory" element={<InventoryManagement />} />
           <Route path="/restaurant/pos/menu" element={<MenuCreation />} />
+          <Route path="/restaurant/pos/billing" element={<Billing />} />
+          <Route path="/restaurant/pos/billing/:orderId" element={<Billing />} />
+          <Route path="/restaurant/pos/waiters" element={<WaiterManagement />} />
         </>
       )}
 

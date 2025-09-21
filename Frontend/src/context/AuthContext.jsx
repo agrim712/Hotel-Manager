@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }) => {
     return; // Add missing closing brace
   }
 
-    setToken(token); // Set token before making the request
+    setToken(token); 
 
     try {
       const res = await axios.get("http://localhost:5000/api/hotel/me", {

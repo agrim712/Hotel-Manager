@@ -12,7 +12,10 @@ import {
   Search,
   Menu,
   LogOut,
-  User
+  User,
+  ChevronLeft,
+  ChevronRight,
+  DollarSign
 } from 'lucide-react';
 
 const POSLayout = ({ children, title = "POS Dashboard" }) => {
@@ -40,6 +43,12 @@ const POSLayout = ({ children, title = "POS Dashboard" }) => {
       description: 'Table management'
     },
     {
+      label: 'Waiters',
+      path: '/pos/waiters',
+      icon: Users,
+      description: 'Waiter management'
+    },
+    {
       label: 'Kitchen',
       path: '/pos/kitchen',
       icon: ChefHat,
@@ -50,6 +59,12 @@ const POSLayout = ({ children, title = "POS Dashboard" }) => {
       path: '/pos/menu',
       icon: ChefHat,
       description: 'Menu management'
+    },
+    {
+      label: 'Billing',
+      path: '/pos/billing',
+      icon: DollarSign,
+      description: 'Receipt templates & billing'
     },
     {
       label: 'Inventory',
@@ -73,16 +88,22 @@ const POSLayout = ({ children, title = "POS Dashboard" }) => {
       onClick: () => navigate('/pos/orders/new')
     },
     {
-      title: 'Kitchen',
-      icon: ChefHat,
-      color: 'bg-orange-500',
-      onClick: () => navigate('/pos/kitchen')
-    },
-    {
       title: 'Tables',
       icon: Users,
       color: 'bg-green-500',
       onClick: () => navigate('/pos/tables')
+    },
+    {
+      title: 'Waiters',
+      icon: Users,
+      color: 'bg-teal-500',
+      onClick: () => navigate('/pos/waiters')
+    },
+    {
+      title: 'Kitchen',
+      icon: ChefHat,
+      color: 'bg-orange-500',
+      onClick: () => navigate('/pos/kitchen')
     },
     {
       title: 'Menu',
@@ -98,94 +119,109 @@ const POSLayout = ({ children, title = "POS Dashboard" }) => {
     }
   ];
 
+  // Updated to handle sub-routes correctly
   const isActiveRoute = (path) => {
     return location.pathname === path || location.pathname.startsWith(path + '/');
+  };
+
+  const handleLogout = () => {
+    // Add your logout logic here
+    console.log("Logging out...");
+    navigate('/login'); // Redirect to login page
   };
 
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-80' : 'w-16'} bg-white shadow-lg border-r border-gray-200 transition-all duration-300`}>
-        <div className="p-6">
-          {/* Header */}
-          <div className="flex items-center space-x-3 mb-8">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Menu className="w-6 h-6 text-white" />
-            </div>
-            {sidebarOpen && (
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">Restaurant POS</h2>
-                <p className="text-sm text-gray-500">Management System</p>
-              </div>
-            )}
-          </div>
-
-          {/* Quick Actions */}
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white shadow-lg border-r border-gray-200 transition-all duration-300 flex flex-col`}>
+        <div className="p-6 flex items-center justify-between">
           {sidebarOpen && (
-            <div className="mb-8">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Quick Actions</h3>
-              <div className="grid grid-cols-2 gap-2">
-                {quickActions.map((action, index) => (
-                  <button
-                    key={index}
-                    onClick={action.onClick}
-                    className={`${action.color} text-white p-3 rounded-lg hover:opacity-90 transition-opacity`}
-                    title={action.title}
-                  >
-                    <action.icon className="w-5 h-5 mb-1" />
-                    <div className="text-xs font-medium">{action.title}</div>
-                  </button>
-                ))}
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <ChefHat className="w-5 h-5 text-white" />
               </div>
+              <h2 className="text-xl font-bold text-gray-900">Restaurant POS</h2>
             </div>
           )}
-
-          {/* Navigation */}
-          <div>
-            {sidebarOpen && (
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Navigation</h3>
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors self-end"
+            title={sidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
+          >
+            {sidebarOpen ? (
+              <ChevronLeft className="w-5 h-5 text-gray-600" />
+            ) : (
+              <ChevronRight className="w-5 h-5 text-gray-600" />
             )}
-            <div className="space-y-1">
-              {navigationItems.map((item) => (
+          </button>
+        </div>
+
+        {/* Quick Actions (now a separate section in the sidebar) */}
+        {sidebarOpen && (
+          <div className="p-6 border-t border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Quick Actions</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {quickActions.map((action, index) => (
                 <button
-                  key={item.path}
-                  onClick={() => navigate(item.path)}
-                  className={`w-full text-left p-3 rounded-lg transition-colors group ${
-                    isActiveRoute(item.path) 
-                      ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700' 
-                      : 'hover:bg-gray-50'
-                  }`}
+                  key={index}
+                  onClick={action.onClick}
+                  className={`${action.color} text-white p-3 rounded-lg hover:opacity-90 transition-opacity flex flex-col items-center justify-center text-center`}
                 >
-                  <div className="flex items-center space-x-3">
-                    <item.icon className={`w-5 h-5 ${
-                      isActiveRoute(item.path) ? 'text-blue-700' : 'text-gray-500 group-hover:text-blue-600'
-                    }`} />
-                    {sidebarOpen && (
-                      <div>
-                        <div className="font-medium">{item.label}</div>
-                        <div className="text-xs text-gray-500">{item.description}</div>
-                      </div>
-                    )}
-                  </div>
+                  <action.icon className="w-5 h-5 mb-1" />
+                  <div className="text-xs font-medium">{action.title}</div>
                 </button>
               ))}
             </div>
           </div>
+        )}
 
-          {/* User Section */}
-          {sidebarOpen && (
-            <div className="mt-8 pt-6 border-t border-gray-200">
+        {/* Navigation - Added overflow-y-auto */}
+        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+          {navigationItems.map((item) => (
+            <button
+              key={item.path}
+              onClick={() => navigate(item.path)}
+              className={`w-full text-left p-3 rounded-lg transition-colors group ${
+                isActiveRoute(item.path) 
+                  ? 'bg-blue-100 text-blue-800' // Darker highlight
+                  : 'hover:bg-gray-100 text-gray-600'
+              } flex items-center space-x-3`}
+            >
+              <item.icon className={`w-5 h-5 ${
+                isActiveRoute(item.path) ? 'text-blue-800' : 'text-gray-500 group-hover:text-blue-600'
+              }`} />
+              {sidebarOpen && (
+                <div className="flex flex-col">
+                  <div className="font-medium text-sm">{item.label}</div>
+                  {item.description && <div className="text-xs text-gray-500 truncate">{item.description}</div>}
+                </div>
+              )}
+            </button>
+          ))}
+        </nav>
+
+        {/* User and Logout Section */}
+        <div className="p-4 border-t border-gray-200">
+          <div className="flex items-center justify-between">
+            {sidebarOpen && (
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
                   <User className="w-4 h-4 text-gray-600" />
                 </div>
                 <div className="flex-1">
-                  <div className="text-sm font-medium text-gray-900">Restaurant Staff</div>
+                  <div className="text-sm font-medium text-gray-900 truncate">Staff User</div>
                   <div className="text-xs text-gray-500">POS User</div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              title="Logout"
+            >
+              <LogOut className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -195,16 +231,8 @@ const POSLayout = ({ children, title = "POS Dashboard" }) => {
         <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <Menu className="w-5 h-5 text-gray-600" />
-              </button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-                <p className="text-sm text-gray-500">Restaurant Point of Sale System</p>
-              </div>
+              <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+              <p className="text-sm text-gray-500 hidden md:block">Restaurant Point of Sale System</p>
             </div>
             
             <div className="flex items-center space-x-4">
@@ -213,7 +241,7 @@ const POSLayout = ({ children, title = "POS Dashboard" }) => {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Search orders, items..."
+                  placeholder="Search..."
                   className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -223,14 +251,6 @@ const POSLayout = ({ children, title = "POS Dashboard" }) => {
                 <Bell className="w-5 h-5 text-gray-600" />
                 <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
               </button>
-              
-              {/* User Menu */}
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-sm font-medium text-gray-700">Staff User</span>
-              </div>
             </div>
           </div>
         </header>

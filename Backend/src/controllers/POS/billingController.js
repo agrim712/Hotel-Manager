@@ -1,9 +1,27 @@
 import pkg from "@prisma/client";
-const { PrismaClient } = pkg;
+const { PrismaClient, PaymentMode } = pkg;
 
 const prisma = new PrismaClient();
 
 // ===================== BILL CONTROLLERS =====================
+
+// Normalize incoming payment mode strings to Prisma PaymentMode enum values
+const normalizePaymentMode = (mode) => {
+  if (!mode) return null;
+  const value = String(mode).trim().toUpperCase();
+  // Direct matches
+  const allowed = new Set(["CASH", "CARD", "UPI", "BANK", "OTHER"]);
+  if (allowed.has(value)) return value;
+  // Common aliases from frontend/UI
+  switch (value) {
+    case "WALLET":
+    case "ONLINE":
+    case "DIGITAL":
+      return "OTHER";
+    default:
+      return null;
+  }
+};
 
 export const getBills = async (req, res) => {
   try {
@@ -346,6 +364,34 @@ export const createPayment = async (req, res) => {
       });
     }
 
+    // Normalize and validate payment mode against Prisma enum
+    const normalizeMode = (rawMode) => {
+      if (!rawMode || typeof rawMode !== 'string') return null;
+      const upper = rawMode.trim().toUpperCase();
+      if (upper === 'WALLET') return PaymentMode.OTHER;
+      if (upper in PaymentMode) return PaymentMode[upper];
+      // Common aliases
+      const aliasMap = {
+        CASH: PaymentMode.CASH,
+        CARD: PaymentMode.CARD,
+        CREDITCARD: PaymentMode.CARD,
+        DEBITCARD: PaymentMode.CARD,
+        UPI: PaymentMode.UPI,
+        BANK: PaymentMode.BANK,
+        NETBANKING: PaymentMode.BANK,
+        ONLINE: PaymentMode.BANK,
+      };
+      return aliasMap[upper] || null;
+    };
+
+    const normalizedMode = normalizeMode(mode);
+    if (!normalizedMode) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid payment mode. Use one of: ${Object.values(PaymentMode).join(', ')}`
+      });
+    }
+
     // Verify order exists and belongs to hotel
     const order = await prisma.order.findFirst({
       where: { id: orderId, hotelId }
@@ -361,7 +407,7 @@ export const createPayment = async (req, res) => {
     const payment = await prisma.payment.create({
       data: {
         orderId,
-        mode,
+        mode: normalizedMode,
         amount: parseFloat(amount),
         status
       },
