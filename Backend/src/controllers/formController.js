@@ -35,6 +35,20 @@ export const saveForm = [
       
       const userId = req.user.id;
       console.log("Received data to save:", { userId, data, currentSection });
+      
+      // Debug room data specifically
+      if (data?.rooms) {
+        console.log("Room data being saved:");
+        data.rooms.forEach((room, index) => {
+          console.log(`Room ${index + 1}:`, {
+            name: room.name,
+            numOfRooms: room.numOfRooms,
+            roomNumbers: room.roomNumbers,
+            roomNumbersType: typeof room.roomNumbers,
+            roomNumbersArray: Array.isArray(room.roomNumbers)
+          });
+        });
+      }
 
 
       // Upsert the saved form data
