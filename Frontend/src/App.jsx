@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Home from "./components/Home";
-import Contact from "./components/Contact";
+import Home from "./Components/Home";
+import Contact from "./Components/Contact";
 import PMS from "./components/PMS";
 import BookingEngine from "./components/BookingEngine";
 import Onboard from "./components/Onboard";
@@ -51,12 +51,17 @@ import FolioCreation from './pages/PMS/CustomerFolio';
 // Import POS Components
 import WaiterManagement from './pages/POS/WaiterManagement';
 import POSDashboard from './pages/POS/POSDashboard';
+import OutletsDashboard from './pages/POS/OutletsDashboard';
 import OrderManagement from './pages/POS/order/OrderManagement';
 import TableManagement from './pages/POS/TableManagement';
 import KitchenDisplaySystem from './pages/POS/KitchenDisplaySystem';
 import InventoryManagement from './pages/POS/InventoryManagement';
 import MenuCreation from './pages/POS/MenuCreation';
 import Billing from './pages/POS/Billing';
+import RecipeCreation from './pages/POS/RecipeCreation';
+import RecipeList from './pages/POS/RecipeList';
+import OutletManagement from './pages/POS/OutletManagement';
+import POSSettings from './pages/POS/POSSettings';
 
 axios.defaults.baseURL = 'http://localhost:5000';
 
@@ -130,13 +135,18 @@ const ProductRoutes = () => {
           {/* Comprehensive POS Routes */}
           <Route path="/pos" element={<POSDashboard />} />
           <Route path="/pos/dashboard" element={<POSDashboard />} />
+          <Route path="/pos/outlets-dashboard" element={<OutletsDashboard />} />
           <Route path="/pos/orders" element={<OrderManagement />} />
           <Route path="/pos/orders/new" element={<OrderManagement />} />
           <Route path="/pos/tables" element={<TableManagement />} />
           <Route path="/pos/waiters" element={<WaiterManagement />} />
           <Route path="/pos/kitchen" element={<KitchenDisplaySystem />} />
           <Route path="/pos/inventory" element={<InventoryManagement />} />
+          <Route path="/pos/recipes" element={<RecipeCreation />} />
+          <Route path="/pos/recipes/list" element={<RecipeList />} />
           <Route path="/pos/menu" element={<MenuCreation />} />
+          <Route path="/pos/outlets" element={<OutletManagement />} />
+          <Route path="/pos/settings" element={<POSSettings />} />
           <Route path="/pos/billing" element={<Billing />} />
           <Route path="/pos/billing/:orderId" element={<Billing />} />
           
@@ -147,7 +157,10 @@ const ProductRoutes = () => {
           <Route path="/restaurant/pos/tables" element={<TableManagement />} />
           <Route path="/restaurant/pos/kitchen" element={<KitchenDisplaySystem />} />
           <Route path="/restaurant/pos/inventory" element={<InventoryManagement />} />
+          <Route path="/restaurant/pos/recipes" element={<RecipeCreation />} />
+          <Route path="/restaurant/pos/recipes/list" element={<RecipeList />} />
           <Route path="/restaurant/pos/menu" element={<MenuCreation />} />
+          <Route path="/restaurant/pos/outlets" element={<OutletManagement />} />
           <Route path="/restaurant/pos/billing" element={<Billing />} />
           <Route path="/restaurant/pos/billing/:orderId" element={<Billing />} />
           <Route path="/restaurant/pos/waiters" element={<WaiterManagement />} />

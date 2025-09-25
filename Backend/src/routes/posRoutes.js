@@ -14,6 +14,8 @@ import * as reportController from "../controllers/POS/reportController.js";
 import * as couponController from "../controllers/POS/couponController.js";
 import * as queueController from "../controllers/POS/queueController.js";
 import * as thirdPartyController from "../controllers/POS/thirdPartyController.js";
+import * as recipeController from "../controllers/POS/recipeController.js";
+import * as outletController from "../controllers/POS/outletController.js";
 
 const router = express.Router();
 
@@ -23,6 +25,17 @@ router.use(authenticateToken);
 const requireManagerOrAdmin = authorizeRoles('HOTELADMIN', 'RESTAURANTMANAGER');
 const requireStaffOrAbove = authorizeRoles('HOTELADMIN', 'RESTAURANTMANAGER', 'WAITER', 'CHIEF');
 const requireAdminOnly = authorizeRoles('HOTELADMIN');
+
+// ===================== OUTLET MANAGEMENT ROUTES =====================
+router.get("/outlets", outletController.getOutlets);
+router.get("/outlets/:id", outletController.getOutlet);
+router.post("/outlets", requireManagerOrAdmin, outletController.createOutlet);
+router.put("/outlets/:id", requireManagerOrAdmin, outletController.updateOutlet);
+router.delete("/outlets/:id", requireManagerOrAdmin, outletController.deleteOutlet);
+router.get("/outlets/:id/statistics", requireManagerOrAdmin, outletController.getOutletStatistics);
+router.put("/outlets/:id/toggle-status", requireManagerOrAdmin, outletController.toggleOutletStatus);
+router.get("/outlets-dashboard", requireManagerOrAdmin, outletController.getOutletsDashboard);
+router.get("/available-managers", requireManagerOrAdmin, outletController.getAvailableManagers);
 
 // ===================== MENU MANAGEMENT ROUTES =====================
 router.get("/menu/categories", menuController.getMenuCategories);
@@ -134,6 +147,13 @@ router.get("/purchase-orders/:id", inventoryController.getPurchaseOrder);
 router.post("/purchase-orders", requireManagerOrAdmin, inventoryController.createPurchaseOrder);
 router.put("/purchase-orders/:id", requireManagerOrAdmin, inventoryController.updatePurchaseOrder);
 router.put("/purchase-orders/:id/status", requireManagerOrAdmin, inventoryController.updatePurchaseOrderStatus);
+
+// ===================== RECIPE ROUTES =====================
+router.get("/recipes", recipeController.getRecipes);
+router.get("/recipes/:id", recipeController.getRecipe);
+router.post("/recipes", requireManagerOrAdmin, recipeController.createRecipe);
+router.put("/recipes/:id", requireManagerOrAdmin, recipeController.updateRecipe);
+router.delete("/recipes/:id", requireManagerOrAdmin, recipeController.deleteRecipe);
 
 // ===================== KITCHEN DISPLAY SYSTEM ROUTES =====================
 router.get("/kitchen/orders", kitchenController.getKitchenOrders);
