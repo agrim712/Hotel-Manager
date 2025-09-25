@@ -35,6 +35,11 @@ const InventoryManagement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  // New form states
+  const [newItem, setNewItem] = useState({ name: '', quantity: '', unit: 'kg', threshold: '', supplierId: '', costPrice: '' });
+  const [newSupplier, setNewSupplier] = useState({ name: '', contact: '', email: '', phone: '', address: '', category: 'MAIN' });
+  const token = localStorage.getItem('token');
+
   useEffect(() => {
     fetchInventoryItems();
     fetchSuppliers();
@@ -43,7 +48,6 @@ const InventoryManagement = () => {
   const fetchInventoryItems = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
       const params = new URLSearchParams({
         page: currentPage,
         limit: 20,
@@ -72,7 +76,6 @@ const InventoryManagement = () => {
 
   const fetchSuppliers = async () => {
     try {
-      const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:5000/api/pos/suppliers', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -559,13 +562,40 @@ const InventoryManagement = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Add New Inventory Item</h2>
-            <form className="space-y-4">
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                try {
+                  const res = await fetch('http://localhost:5000/api/pos/inventory', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      name: newItem.name,
+                      quantity: parseFloat(newItem.quantity || '0'),
+                      unit: newItem.unit,
+                      threshold: newItem.threshold ? parseFloat(newItem.threshold) : null,
+                      costPrice: newItem.costPrice ? parseFloat(newItem.costPrice) : null,
+                      supplierId: newItem.supplierId || null,
+                    })
+                  });
+                  if (res.ok) {
+                    setShowAddItem(false);
+                    setNewItem({ name: '', quantity: '', unit: 'kg', threshold: '', supplierId: '', costPrice: '' });
+                    fetchInventoryItems();
+                  }
+                } catch (err) {
+                  console.error('Failed to create inventory item', err);
+                }
+              }}
+              className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Item Name
                 </label>
                 <input
                   type="text"
+                  value={newItem.name}
+                  onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="e.g., Tomatoes, Onions, Rice"
                 />
@@ -579,6 +609,8 @@ const InventoryManagement = () => {
                     type="number"
                     step="0.01"
                     min="0"
+                    value={newItem.quantity}
+                    onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="0"
                   />
@@ -587,7 +619,10 @@ const InventoryManagement = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Unit
                   </label>
-                  <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                  <select
+                    value={newItem.unit}
+                    onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     <option value="kg">kg</option>
                     <option value="g">g</option>
                     <option value="l">l</option>
@@ -605,6 +640,8 @@ const InventoryManagement = () => {
                   type="number"
                   step="0.01"
                   min="0"
+                  value={newItem.threshold}
+                  onChange={(e) => setNewItem({ ...newItem, threshold: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Minimum stock level"
                 />
@@ -613,7 +650,10 @@ const InventoryManagement = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Supplier
                 </label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <select
+                  value={newItem.supplierId}
+                  onChange={(e) => setNewItem({ ...newItem, supplierId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                   <option value="">Select Supplier</option>
                   {suppliers.map(supplier => (
                     <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
@@ -628,6 +668,8 @@ const InventoryManagement = () => {
                   type="number"
                   step="0.01"
                   min="0"
+                  value={newItem.costPrice}
+                  onChange={(e) => setNewItem({ ...newItem, costPrice: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Cost per unit"
                 />
@@ -657,13 +699,33 @@ const InventoryManagement = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Add New Supplier</h2>
-            <form className="space-y-4">
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                try {
+                  const res = await fetch('http://localhost:5000/api/pos/suppliers', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newSupplier)
+                  });
+                  if (res.ok) {
+                    setShowAddSupplier(false);
+                    setNewSupplier({ name: '', contact: '', email: '', phone: '', address: '', category: 'MAIN' });
+                    fetchSuppliers();
+                  }
+                } catch (err) {
+                  console.error('Failed to create supplier', err);
+                }
+              }}
+              className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Supplier Name
                 </label>
                 <input
                   type="text"
+                  value={newSupplier.name}
+                  onChange={(e) => setNewSupplier({ ...newSupplier, name: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="e.g., ABC Suppliers, XYZ Foods"
                 />
@@ -674,6 +736,8 @@ const InventoryManagement = () => {
                 </label>
                 <input
                   type="text"
+                  value={newSupplier.contact}
+                  onChange={(e) => setNewSupplier({ ...newSupplier, contact: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Contact person name"
                 />
@@ -684,6 +748,8 @@ const InventoryManagement = () => {
                 </label>
                 <input
                   type="email"
+                  value={newSupplier.email}
+                  onChange={(e) => setNewSupplier({ ...newSupplier, email: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="supplier@example.com"
                 />
@@ -694,6 +760,8 @@ const InventoryManagement = () => {
                 </label>
                 <input
                   type="tel"
+                  value={newSupplier.phone}
+                  onChange={(e) => setNewSupplier({ ...newSupplier, phone: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Phone number"
                 />
@@ -703,10 +771,24 @@ const InventoryManagement = () => {
                   Address
                 </label>
                 <textarea
+                  value={newSupplier.address}
+                  onChange={(e) => setNewSupplier({ ...newSupplier, address: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   rows="3"
                   placeholder="Supplier address"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <select
+                  value={newSupplier.category}
+                  onChange={(e) => setNewSupplier({ ...newSupplier, category: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
+                >
+                  <option value="MAIN">MAIN</option>
+                  <option value="SECONDARY">SECONDARY</option>
+                  <option value="EMERGENCY">EMERGENCY</option>
+                </select>
               </div>
               <div className="flex justify-end space-x-3 pt-4">
                 <button

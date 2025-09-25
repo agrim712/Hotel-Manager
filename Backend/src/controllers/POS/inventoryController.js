@@ -543,7 +543,7 @@ export const getSuppliers = async (req, res) => {
 export const createSupplier = async (req, res) => {
   try {
     const { hotelId } = req.user;
-    const { name, contact, email, address, phone } = req.body;
+    const { name, contact, email, address, phone, category } = req.body;
 
     if (!name) {
       return res.status(400).json({
@@ -552,6 +552,10 @@ export const createSupplier = async (req, res) => {
       });
     }
 
+    // Validate category if provided
+    const validCategories = ['MAIN', 'SECONDARY', 'EMERGENCY'];
+    const cat = category && validCategories.includes(category) ? category : undefined;
+
     const supplier = await prisma.supplier.create({
       data: {
         name,
@@ -559,6 +563,7 @@ export const createSupplier = async (req, res) => {
         email: email || null,
         address: address || null,
         phone: phone || null,
+        category: cat,
         hotelId
       }
     });
@@ -582,7 +587,9 @@ export const updateSupplier = async (req, res) => {
   try {
     const { hotelId } = req.user;
     const { id } = req.params;
-    const { name, contact, email, address, phone } = req.body;
+    const { name, contact, email, address, phone, category } = req.body;
+
+    const validCategories = ['MAIN', 'SECONDARY', 'EMERGENCY'];
 
     const supplier = await prisma.supplier.update({
       where: { 
@@ -594,7 +601,8 @@ export const updateSupplier = async (req, res) => {
         contact: contact !== undefined ? contact : undefined,
         email: email !== undefined ? email : undefined,
         address: address !== undefined ? address : undefined,
-        phone: phone !== undefined ? phone : undefined
+        phone: phone !== undefined ? phone : undefined,
+        category: category !== undefined ? (validCategories.includes(category) ? category : undefined) : undefined
       }
     });
 

@@ -19,6 +19,11 @@ const NewOrderForm = ({ onOrderCreated, onCancel }) => {
   const [creatingCustomer, setCreatingCustomer] = useState(false);
   const [showSummary, setShowSummary] = useState(false); // State to toggle summary on mobile
 
+  // Modifier configuration modal state
+  const [configModalOpen, setConfigModalOpen] = useState(false);
+  const [configItem, setConfigItem] = useState(null);
+  const [configSelectedModifiers, setConfigSelectedModifiers] = useState([]);
+
   useEffect(() => {
     fetchCustomers();
     fetchTables();
@@ -56,6 +61,7 @@ const NewOrderForm = ({ onOrderCreated, onCancel }) => {
       });
       if (response.ok) {
         const data = await response.json();
+        console.log('Tables:', data.data);
         setTables(data.data || []);
       }
     } catch (error) {
@@ -118,7 +124,14 @@ const NewOrderForm = ({ onOrderCreated, onCancel }) => {
   };
 
   const handleAddItem = (menuItem) => {
-    addConfiguredItem(menuItem, []);
+    if (menuItem?.modifiers && menuItem.modifiers.length > 0) {
+      // Open configuration modal for customizable items
+      setConfigItem(menuItem);
+      setConfigSelectedModifiers([]);
+      setConfigModalOpen(true);
+    } else {
+      addConfiguredItem(menuItem, []);
+    }
   };
 
   const addConfiguredItem = (menuItem, modifierIds = []) => {
@@ -142,6 +155,25 @@ const NewOrderForm = ({ onOrderCreated, onCancel }) => {
         }
       ]);
     }
+  };
+
+  const toggleConfigModifier = (modifierId) => {
+    setConfigSelectedModifiers((prev) =>
+      prev.includes(modifierId) ? prev.filter((id) => id !== modifierId) : [...prev, modifierId]
+    );
+  };
+
+  const confirmConfigAdd = () => {
+    if (!configItem) return;
+    // Enforce required rule (simple): if any modifier isRequired, ensure at least one required selected
+    const requiredIds = (configItem.modifiers || []).filter(m => m.isRequired).map(m => m.id);
+    if (requiredIds.length > 0 && !configSelectedModifiers.some(id => requiredIds.includes(id))) {
+      return; // keep modal open until user selects at least one required
+    }
+    addConfiguredItem(configItem, configSelectedModifiers);
+    setConfigModalOpen(false);
+    setConfigItem(null);
+    setConfigSelectedModifiers([]);
   };
 
   const handleAddCombo = (combo) => {
@@ -179,9 +211,23 @@ const NewOrderForm = ({ onOrderCreated, onCancel }) => {
     ));
   };
 
+  const getItemModifierExtra = (item) => {
+    // Find the full menu item to resolve modifier prices
+    const mi = menuItems.find(m => m.id === item.id);
+    if (!mi || !mi.modifiers || !(item.selectedModifierIds?.length)) return 0;
+    return item.selectedModifierIds.reduce((sum, mid) => {
+      const mod = mi.modifiers.find(mm => mm.id === mid);
+      return sum + (mod?.price || 0);
+    }, 0) * item.quantity;
+  };
+
   const totalAmount = useMemo(
-    () => selectedItems.reduce((acc, item) => acc + (item.basePrice || 0) * item.quantity, 0),
-    [selectedItems]
+    () => selectedItems.reduce((acc, item) => {
+      const base = (item.basePrice || 0) * item.quantity;
+      const mods = getItemModifierExtra(item);
+      return acc + base + mods;
+    }, 0),
+    [selectedItems, menuItems]
   );
 
   const filteredItems = useMemo(() => {
@@ -325,7 +371,7 @@ const NewOrderForm = ({ onOrderCreated, onCancel }) => {
                       <button
                         type="button"
                         key={item.id}
-                        onClick={() => addConfiguredItem(item)}
+                        onClick={() => handleAddItem(item)}
                         className={`p-4 border rounded-xl shadow-sm transition-transform transform hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 ${
                           item.vegetarian ? 'border-green-400 focus:ring-green-500' : 'border-red-400 focus:ring-red-500'
                         }`}
@@ -393,6 +439,62 @@ const NewOrderForm = ({ onOrderCreated, onCancel }) => {
             </div>
           </div>
 
+          {/* Config Modal for Modifiers */}
+          {configModalOpen && configItem && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg w-full max-w-md p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Configure {configItem.name}</h3>
+                <div className="text-sm text-gray-600 mb-4">Base Price: ₹{(configItem.basePrice || 0).toFixed(2)}</div>
+                {configItem.modifiers && configItem.modifiers.length > 0 ? (
+                  <div className="space-y-3 max-h-64 overflow-auto">
+                    {configItem.modifiers.map((mod) => (
+                      <label key={mod.id} className="flex items-center justify-between border rounded-md p-2">
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={configSelectedModifiers.includes(mod.id)}
+                            onChange={() => toggleConfigModifier(mod.id)}
+                            className="mr-3"
+                          />
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{mod.name}</div>
+                            <div className="text-xs text-gray-500">{mod.isRequired ? 'Required · ' : ''}₹{(mod.price || 0).toFixed(2)}</div>
+                          </div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-500">No modifiers available</div>
+                )}
+                <div className="flex items-center justify-between mt-4">
+                  <div className="text-sm text-gray-700">
+                    Total: ₹{(() => {
+                      const mods = (configItem.modifiers || []).filter(m => configSelectedModifiers.includes(m.id));
+                      const extra = mods.reduce((s, m) => s + (m.price || 0), 0);
+                      return ((configItem.basePrice || 0) + extra).toFixed(2);
+                    })()}
+                  </div>
+                  <div className="space-x-2">
+                    <button
+                      onClick={() => { setConfigModalOpen(false); setConfigItem(null); setConfigSelectedModifiers([]); }}
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={confirmConfigAdd}
+                      disabled={(configItem.modifiers || []).some(m => m.isRequired) && !(configSelectedModifiers.some(id => (configItem.modifiers || []).some(m => m.isRequired && m.id === id)))}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      Add to Order
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Order Summary Section */}
           <div className={`md:col-span-1 fixed inset-0 bg-white z-50 transform transition-transform ${showSummary ? 'translate-x-0' : 'translate-x-full'} md:relative md:translate-x-0 md:h-auto`}>
             <div className="bg-white rounded-xl shadow-lg p-6 h-full flex flex-col">
@@ -427,9 +529,18 @@ const NewOrderForm = ({ onOrderCreated, onCancel }) => {
                               className="w-12 text-center text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                             />
                           </div>
+                          {item.selectedModifierIds?.length > 0 && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              {(() => {
+                                const mi = menuItems.find(m => m.id === item.id);
+                                const names = item.selectedModifierIds.map(mid => mi?.modifiers?.find(mm => mm.id === mid)?.name).filter(Boolean);
+                                return names.length > 0 ? `+ ${names.join(', ')}` : null;
+                              })()}
+                            </div>
+                          )}
                         </div>
                         <div className="flex items-center space-x-2">
-                          <span className="text-sm font-bold text-gray-900">₹{(item.basePrice * item.quantity).toFixed(2)}</span>
+                          <span className="text-sm font-bold text-gray-900">₹{(item.basePrice * item.quantity + getItemModifierExtra(item)).toFixed(2)}</span>
                           <button
                             type="button"
                             onClick={() => handleRemoveItem(item._key || item.id)}
@@ -472,7 +583,7 @@ const NewOrderForm = ({ onOrderCreated, onCancel }) => {
                       className="w-full border border-gray-300 rounded-lg p-2 text-gray-900 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="" className="text-gray-500">-- Select Table --</option>
-                      {tables.map(t => <option key={t.id} value={t.id} className="text-gray-900">{t.name}</option>)}
+                      {tables.map(t => <option key={t.id} value={t.id} className="text-gray-900">{t.number}  (capacity: {t.capacity})</option>)}
                     </select>
                   </div>
                 )}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import POSLayout from '../../components/POS/POSLayout';
+import POSLayout from '../../Components/POS/POSLayout';
 import { 
   Plus, 
   Search, 

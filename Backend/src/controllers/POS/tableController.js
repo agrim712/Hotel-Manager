@@ -8,11 +8,12 @@ const prisma = new PrismaClient();
 export const getTables = async (req, res) => {
   try {
     const { hotelId } = req.user;
-    const { areaId, status } = req.query;
+    const { areaId, status, outletId } = req.query;
 
     const whereClause = { hotelId };
     if (areaId) whereClause.areaId = areaId;
     if (status) whereClause.status = status;
+    if (outletId) whereClause.outletId = outletId;
 
     const tables = await prisma.table.findMany({
       where: whereClause,
@@ -108,7 +109,7 @@ export const getTable = async (req, res) => {
 export const createTable = async (req, res) => {
   try {
     const { hotelId } = req.user;
-    const { number, capacity, areaId, waiterId } = req.body;
+    const { number, capacity, areaId, waiterId, outletId } = req.body;
 
     if (!number || !capacity) {
       return res.status(400).json({
@@ -158,6 +159,7 @@ export const createTable = async (req, res) => {
         areaId: areaId || null,
         waiterId: waiterId || null,
         hotelId,
+        outletId: outletId || null,
         status: "AVAILABLE"
       },
       include: {
@@ -414,9 +416,15 @@ export const getAvailableTables = async (req, res) => {
 export const getAreas = async (req, res) => {
   try {
     const { hotelId } = req.user;
+    const { outletId } = req.query;
+
+    const whereClause = { hotelId };
+    if (outletId) {
+      whereClause.outletId = outletId;
+    }
 
     const areas = await prisma.area.findMany({
-      where: { hotelId },
+      where: whereClause,
       include: {
         tables: {
           include: {
@@ -459,7 +467,7 @@ export const getAreas = async (req, res) => {
 export const createArea = async (req, res) => {
   try {
     const { hotelId } = req.user;
-    const { name } = req.body;
+    const { name, outletId } = req.body;
 
     if (!name) {
       return res.status(400).json({
@@ -483,7 +491,8 @@ export const createArea = async (req, res) => {
     const area = await prisma.area.create({
       data: {
         name,
-        hotelId
+        hotelId,
+        outletId: outletId || null
       }
     });
 

@@ -152,6 +152,8 @@ model Hotel {
   thirdPartyOrders ThirdPartyOrder[]
   taxConfigurations TaxConfiguration[]
   receiptTemplates ReceiptTemplate[]
+  recipes  Recipe[]
+  outlets  Outlet[]
 }
 
 model BankAccount {
@@ -483,9 +485,10 @@ model StaffUser {
   name      String
   email     String   @unique
   password  String
-  role      String // e.g. "Front Office", "Housekeeping"
+  role      String // e.g. "Front Office", "Housekeeping", "Outlet Manager"
   hotelId   String
   hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  managedOutlets Outlet[] // Outlets where this staff user is the manager
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -499,6 +502,8 @@ model Waiter {
   isActive  Boolean  @default(true)
   hotelId   String
   hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  outletId  String?
+  outlet    Outlet?  @relation(fields: [outletId], references: [id])
   tables    Table[]  // Tables assigned to this waiter
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -529,6 +534,8 @@ model Table {
   waiter    Waiter?  @relation(fields: [waiterId], references: [id])
   hotelId   String
   hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  outletId  String?
+  outlet    Outlet?  @relation(fields: [outletId], references: [id])
   orders    Order[]
   status    String   @default("AVAILABLE") // AVAILABLE, OCCUPIED, RESERVED
 }
@@ -538,6 +545,8 @@ model Area {
   name      String
   hotelId   String
   hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  outletId  String?
+  outlet    Outlet?  @relation(fields: [outletId], references: [id])
   tables    Table[]
 }
 
@@ -548,6 +557,8 @@ model Order {
   status       String       @default("PENDING") // PENDING, CONFIRMED, PREPARING, READY, COMPLETED, CANCELLED
   hotelId      String
   hotel        Hotel        @relation(fields: [hotelId], references: [id])
+  outletId     String?
+  outlet       Outlet?      @relation(fields: [outletId], references: [id])
   customerId   String?
   customer     Customer?    @relation(fields: [customerId], references: [id])
   tableId      String?
@@ -620,10 +631,13 @@ model InventoryItem {
   costPrice Float?
   hotelId   String
   hotel     Hotel     @relation(fields: [hotelId], references: [id])
+  outletId  String?
+  outlet    Outlet?   @relation(fields: [outletId], references: [id])
   supplierId String?
   supplier   Supplier? @relation(fields: [supplierId], references: [id])
   transactions InventoryTransaction[]
   purchaseOrders PurchaseOrder[]
+  recipeItems RecipeItem[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -635,12 +649,76 @@ model Supplier {
   email     String?
   address   String?
   phone     String?
+  category  SupplierCategory @default(MAIN)
   hotelId   String
   hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  outletId  String?
+  outlet    Outlet?  @relation(fields: [outletId], references: [id])
   items     InventoryItem[]
   purchaseOrders PurchaseOrder[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Outlet {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  location        String
+  address         String?
+  phone           String?
+  email           String?
+  operatingHours  Json?    // { monday: { open: "09:00", close: "22:00", closed: false }, ... }
+  outletType      String   @default("RESTAURANT") // RESTAURANT, BAR, CAFE, FAST_FOOD, etc.
+  isActive        Boolean  @default(true)
+  hotelId         String
+  hotel           Hotel    @relation(fields: [hotelId], references: [id])
+  managerId       String?  // Staff user assigned as outlet manager
+  manager         StaffUser? @relation(fields: [managerId], references: [id])
+  
+  // Relations to existing entities
+  tables          Table[]
+  areas           Area[]
+  waiters         Waiter[]
+  orders          Order[]
+  menuCategories  MenuCategory[]
+  menuItems       MenuItem[]
+  menuModifiers   MenuModifier[]
+  comboItems      ComboItem[]
+  inventoryItems  InventoryItem[]
+  suppliers       Supplier[]
+  kitchenOrders   KitchenOrder[]
+  kitchenDisplays KitchenDisplay[]
+  coupons         Coupon[]
+  queueEntries    QueueEntry[]
+  thirdPartyOrders ThirdPartyOrder[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([name, hotelId])
+}
+
+model Recipe {
+  id          String   @id @default(cuid())
+  menuItemId  String   @unique
+  menuItem    MenuItem @relation(fields: [menuItemId], references: [id])
+  hotelId     String
+  hotel       Hotel    @relation(fields: [hotelId], references: [id])
+  steps       String?
+  items       RecipeItem[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model RecipeItem {
+  id               String   @id @default(cuid())
+  recipeId         String
+  recipe           Recipe   @relation(fields: [recipeId], references: [id])
+  inventoryItemId  String
+  inventoryItem    InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  quantity         Float
+  unit             String?
 }
 
 model Report {
@@ -704,11 +782,13 @@ model MenuCategory {
   isActive    Boolean  @default(true)
   hotelId     String
   hotel       Hotel    @relation(fields: [hotelId], references: [id])
+  outletId    String?
+  outlet      Outlet?  @relation(fields: [outletId], references: [id])
   menuItems   MenuItem[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@unique([name, hotelId])
+  @@unique([name, hotelId, outletId])
 }
 
 model MenuItem {
@@ -720,6 +800,8 @@ model MenuItem {
   category        MenuCategory  @relation(fields: [categoryId], references: [id])
   hotelId         String
   hotel           Hotel         @relation(fields: [hotelId], references: [id])
+  outletId        String?
+  outlet          Outlet?       @relation(fields: [outletId], references: [id])
   images          MenuItemImage[]
   modifiers       MenuModifier[]
   code            String?
@@ -735,6 +817,7 @@ model MenuItem {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   orderItems      OrderItem[]
+  recipe          Recipe?
 
   @@unique([name, categoryId])
 }
@@ -759,6 +842,8 @@ model MenuModifier {
   item        MenuItem @relation(fields: [itemId], references: [id])
   hotelId     String
   hotel       Hotel    @relation(fields: [hotelId], references: [id])
+  outletId    String?
+  outlet      Outlet?  @relation(fields: [outletId], references: [id])
   orderModifiers OrderModifier[]
   createdAt   DateTime @default(now())
 }
@@ -771,6 +856,8 @@ model ComboItem {
   items       Json     // Array of { itemId, quantity }
   hotelId     String
   hotel       Hotel    @relation(fields: [hotelId], references: [id])
+  outletId    String?
+  outlet      Outlet?  @relation(fields: [outletId], references: [id])
   menuItems   MenuItem[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -791,6 +878,8 @@ model KitchenOrder {
   order       Order    @relation(fields: [orderId], references: [id])
   hotelId     String
   hotel       Hotel    @relation(fields: [hotelId], references: [id])
+  outletId    String?
+  outlet      Outlet?  @relation(fields: [outletId], references: [id])
   status      String   @default("PENDING") // PENDING, PREPARING, READY, SERVED
   priority    String   @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
   estimatedTime Int?   // minutes
@@ -827,6 +916,8 @@ model Coupon {
   isActive    Boolean  @default(true)
   hotelId     String
   hotel       Hotel    @relation(fields: [hotelId], references: [id])
+  outletId    String?
+  outlet      Outlet?  @relation(fields: [outletId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -871,6 +962,8 @@ model KitchenDisplay {
   isActive    Boolean  @default(true)
   hotelId     String
   hotel       Hotel    @relation(fields: [hotelId], references: [id])
+  outletId    String?
+  outlet      Outlet?  @relation(fields: [outletId], references: [id])
   createdAt   DateTime @default(now())
 }
 
@@ -884,6 +977,8 @@ model QueueEntry {
   notes       String?
   hotelId     String
   hotel       Hotel    @relation(fields: [hotelId], references: [id])
+  outletId    String?
+  outlet      Outlet?  @relation(fields: [outletId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -896,6 +991,8 @@ model ThirdPartyOrder {
   orderData   Json     // Full order data from platform
   hotelId     String
   hotel       Hotel    @relation(fields: [hotelId], references: [id])
+  outletId    String?
+  outlet      Outlet?  @relation(fields: [outletId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -950,6 +1047,12 @@ enum PaymentMode {
   UPI
   BANK
   OTHER
+}
+
+enum SupplierCategory {
+  MAIN
+  SECONDARY
+  EMERGENCY
 }
 
 enum CleaningStatus {

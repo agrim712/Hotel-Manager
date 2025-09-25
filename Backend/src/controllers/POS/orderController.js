@@ -203,39 +203,103 @@ export const createOrder = async (req, res) => {
     let totalAmount = 0;
     const orderItemsData = [];
 
-    for (const item of items) {
+  for (const item of items) {
+      // First, try to treat the incoming id as a MenuItem id
       const menuItem = await prisma.menuItem.findFirst({
         where: { id: item.itemId, hotelId }
       });
 
-      if (!menuItem) {
+      if (menuItem) {
+        let itemTotal = parseFloat(menuItem.basePrice) * parseInt(item.quantity);
+        
+        // Add modifier costs (only applicable for standalone menu items)
+        if (item.modifiers && item.modifiers.length > 0) {
+          for (const modifierId of item.modifiers) {
+            const modifier = await prisma.menuModifier.findFirst({
+              where: { id: modifierId, hotelId }
+            });
+            if (modifier) {
+              itemTotal += parseFloat(modifier.price) * parseInt(item.quantity);
+            }
+          }
+        }
+
+        totalAmount += itemTotal;
+        orderItemsData.push({
+          itemId: item.itemId,
+          quantity: parseInt(item.quantity),
+          price: itemTotal,
+          notes: item.notes || null
+        });
+
+        continue; // proceed to next incoming item
+      }
+
+      // If not a MenuItem, try to treat the id as a ComboItem id
+      const combo = await prisma.comboItem.findFirst({
+        where: { id: item.itemId, hotelId }
+      });
+
+      if (!combo) {
         return res.status(400).json({
           success: false,
-          message: `Menu item with ID ${item.itemId} not found`
+          message: `No MenuItem or ComboItem found with ID ${item.itemId}`
         });
       }
 
-      let itemTotal = parseFloat(menuItem.basePrice) * parseInt(item.quantity);
-      
-      // Add modifier costs
-      if (item.modifiers && item.modifiers.length > 0) {
-        for (const modifierId of item.modifiers) {
-          const modifier = await prisma.menuModifier.findFirst({
-            where: { id: modifierId, hotelId }
+      // Combo handling: expand into component items and apportion combo price
+      const comboQuantity = parseInt(item.quantity);
+      const comboItems = Array.isArray(combo.items) ? combo.items : [];
+
+      if (comboItems.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Combo ${combo.name} has no items configured`
+        });
+      }
+
+      // Fetch all component menu items in one query
+      const componentIds = comboItems.map(ci => ci.itemId);
+      const components = await prisma.menuItem.findMany({
+        where: { id: { in: componentIds }, hotelId }
+      });
+      const componentMap = new Map(components.map(c => [c.id, c]));
+
+      // Validate all components exist
+      for (const ci of comboItems) {
+        if (!componentMap.get(ci.itemId)) {
+          return res.status(400).json({
+            success: false,
+            message: `Combo component item with ID ${ci.itemId} not found`
           });
-          if (modifier) {
-            itemTotal += parseFloat(modifier.price) *parseInt(item.quantity);
-          }
         }
       }
 
-      totalAmount += itemTotal;
-      orderItemsData.push({
-        itemId: item.itemId,
-        quantity: item.quantity,
-        price: itemTotal,
-        notes: item.notes || null
-      });
+      // Calculate base totals for apportioning price
+      let sumBase = 0;
+      for (const ci of comboItems) {
+        const comp = componentMap.get(ci.itemId);
+        sumBase += parseFloat(comp.basePrice) * parseInt(ci.quantity);
+      }
+
+      const comboTotal = parseFloat(combo.price) * comboQuantity;
+
+      for (const ci of comboItems) {
+        const comp = componentMap.get(ci.itemId);
+        const perComboComponentBase = parseFloat(comp.basePrice) * parseInt(ci.quantity);
+        const proportion = sumBase > 0 ? (perComboComponentBase / sumBase) : (1 / comboItems.length);
+        const apportionedPrice = comboTotal * proportion; // total price contribution for this component across all combos ordered
+
+        const expandedQuantity = parseInt(ci.quantity) * comboQuantity;
+
+        totalAmount += apportionedPrice;
+        orderItemsData.push({
+          itemId: ci.itemId,
+          quantity: expandedQuantity,
+          price: apportionedPrice,
+          notes: `Combo: ${combo.name}`
+        });
+      }
     }
 
     const order = await prisma.order.create({
@@ -354,10 +418,14 @@ export const updateOrderStatus = async (req, res) => {
 
     // Update table status if order is completed or cancelled
     if ((status === 'COMPLETED' || status === 'CANCELLED') && order.table) {
-      await prisma.table.update({
-        where: { id: order.table.id },
-        data: { status: "AVAILABLE" }
-      });
+      // Do not override MAINTENANCE if payment flow already set maintenance window
+      const currentTable = await prisma.table.findUnique({ where: { id: order.table.id } });
+      if (currentTable?.status !== 'MAINTENANCE') {
+        await prisma.table.update({
+          where: { id: order.table.id },
+          data: { status: "AVAILABLE" }
+        });
+      }
     }
 
     // Update kitchen order status
@@ -431,10 +499,14 @@ export const cancelOrder = async (req, res) => {
 
     // Update table status if dine-in
     if (order.type === 'dine-in' && order.table) {
-      await prisma.table.update({
-        where: { id: order.table.id },
-        data: { status: "AVAILABLE" }
-      });
+      // Do not override MAINTENANCE if payment flow already set maintenance
+      const currentTable = await prisma.table.findUnique({ where: { id: order.table.id } });
+      if (currentTable?.status !== 'MAINTENANCE') {
+        await prisma.table.update({
+          where: { id: order.table.id },
+          data: { status: "AVAILABLE" }
+        });
+      }
     }
 
     // Update kitchen order status

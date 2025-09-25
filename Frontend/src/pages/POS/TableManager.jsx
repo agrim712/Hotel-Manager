@@ -64,9 +64,9 @@ const TableManager = ({ tables, onTableUpdate }) => {
               newTableStatus = 'OCCUPIED';
               break;
             case 'COMPLETED':
-              newTableStatus = 'CLEANING';
+              newTableStatus = 'MAINTENANCE';
               cleaningStartTime = new Date();
-              // Start 10-minute cleaning timer
+              // Start 10-minute maintenance timer
               startCleaningTimer(tableId);
               break;
             case 'CANCELLED':
@@ -170,7 +170,7 @@ const TableManager = ({ tables, onTableUpdate }) => {
   // Get table status icon and color
   const getTableStatusDisplay = (status, tableId) => {
     const cleaningStartTime = tableStatuses[tableId]?.cleaningStartTime;
-    const isCleaning = status === 'CLEANING' && cleaningStartTime;
+    const isCleaning = status === 'MAINTENANCE' && cleaningStartTime;
     
     if (isCleaning) {
       const elapsed = Math.floor((new Date() - new Date(cleaningStartTime)) / 1000);
@@ -201,11 +201,11 @@ const TableManager = ({ tables, onTableUpdate }) => {
           text: 'Occupied',
           isCleaning: false
         };
-      case 'CLEANING':
+      case 'MAINTENANCE':
         return {
           icon: <UtensilsCrossed className="h-4 w-4 text-orange-500" />,
           color: 'bg-orange-100 text-orange-800',
-          text: 'Cleaning',
+          text: 'Maintenance',
           isCleaning: false
         };
       case 'RESERVED':
@@ -240,8 +240,8 @@ const TableManager = ({ tables, onTableUpdate }) => {
         }
       }));
 
-      // If setting to cleaning, start timer
-      if (newStatus === 'CLEANING') {
+      // If setting to maintenance, start timer
+      if (newStatus === 'MAINTENANCE') {
         startCleaningTimer(tableId);
       }
 
@@ -455,9 +455,9 @@ const TableManager = ({ tables, onTableUpdate }) => {
           <div className="flex items-center">
             <Timer className="h-8 w-8 text-orange-600" />
             <div className="ml-3">
-              <p className="text-sm font-medium text-orange-800">Cleaning</p>
+              <p className="text-sm font-medium text-orange-800">Maintenance</p>
               <p className="text-2xl font-bold text-orange-900">
-                {tables.filter(t => (tableStatuses[t.id]?.status || t.status) === 'CLEANING').length}
+                {tables.filter(t => (tableStatuses[t.id]?.status || t.status) === 'MAINTENANCE').length}
               </p>
             </div>
           </div>

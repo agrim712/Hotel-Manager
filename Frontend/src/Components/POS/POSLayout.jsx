@@ -15,10 +15,13 @@ import {
   User,
   ChevronLeft,
   ChevronRight,
-  DollarSign
+  DollarSign,
+  Store
 } from 'lucide-react';
+import OutletSelector from './OutletSelector';
+import { OutletProvider } from '../../context/OutletContext';
 
-const POSLayout = ({ children, title = "POS Dashboard" }) => {
+const POSLayoutContent = ({ children, title = "POS Dashboard" }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -29,6 +32,12 @@ const POSLayout = ({ children, title = "POS Dashboard" }) => {
       path: '/pos/dashboard',
       icon: BarChart3,
       description: 'Overview and analytics'
+    },
+    {
+      label: 'Outlets Dashboard',
+      path: '/pos/outlets-dashboard',
+      icon: BarChart3,
+      description: 'Combined metrics across all outlets'
     },
     {
       label: 'Orders',
@@ -71,6 +80,18 @@ const POSLayout = ({ children, title = "POS Dashboard" }) => {
       path: '/pos/inventory',
       icon: Package,
       description: 'Stock management'
+    },
+    {
+      label: 'Recipes',
+      path: '/pos/recipes/list',
+      icon: ChefHat,
+      description: 'Recipe list'
+    },
+    {
+      label: 'Outlets',
+      path: '/pos/outlets',
+      icon: Store,
+      description: 'Manage restaurant outlets'
     },
     {
       label: 'Settings',
@@ -116,6 +137,12 @@ const POSLayout = ({ children, title = "POS Dashboard" }) => {
       icon: Package,
       color: 'bg-purple-500',
       onClick: () => navigate('/pos/inventory')
+    },
+    {
+      title: 'Recipes',
+      icon: ChefHat,
+      color: 'bg-pink-500',
+      onClick: () => navigate('/pos/recipes')
     }
   ];
 
@@ -232,7 +259,11 @@ const POSLayout = ({ children, title = "POS Dashboard" }) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-              <p className="text-sm text-gray-500 hidden md:block">Restaurant Point of Sale System</p>
+              <div className="hidden md:flex items-center space-x-4">
+                <p className="text-sm text-gray-500">Restaurant Point of Sale System</p>
+                <div className="h-4 w-px bg-gray-300"></div>
+                <OutletSelector className="" />
+              </div>
             </div>
             
             <div className="flex items-center space-x-4">
@@ -261,6 +292,16 @@ const POSLayout = ({ children, title = "POS Dashboard" }) => {
         </main>
       </div>
     </div>
+  );
+};
+
+const POSLayout = ({ children, title = "POS Dashboard" }) => {
+  return (
+    <OutletProvider>
+      <POSLayoutContent title={title}>
+        {children}
+      </POSLayoutContent>
+    </OutletProvider>
   );
 };
 

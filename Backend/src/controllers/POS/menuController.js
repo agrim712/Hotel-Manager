@@ -12,8 +12,15 @@ const prisma = new PrismaClient();
 export const getMenuCategories = async (req, res) => {
   try {
     const { hotelId } = req.user;
+    const { outletId } = req.query;
+    
+    const whereClause = { hotelId };
+    if (outletId) {
+      whereClause.outletId = outletId;
+    }
+    
     const categories = await prisma.menuCategory.findMany({
-      where: { hotelId },
+      where: whereClause,
       include: {
         menuItems: {
           include: {
@@ -44,7 +51,7 @@ export const getMenuCategories = async (req, res) => {
 export const createMenuCategory = async (req, res) => {
   try {
     const { hotelId } = req.user;
-    const { name, description, sortOrder } = req.body;
+    const { name, description, sortOrder, outletId } = req.body;
 
     if (!name) {
       return res.status(400).json({
@@ -58,7 +65,8 @@ export const createMenuCategory = async (req, res) => {
         name,
         description: description || null,
         sortOrder: sortOrder || 0,
-        hotelId
+        hotelId,
+        outletId: outletId || null
       }
     });
 
@@ -177,10 +185,11 @@ export const deleteMenuCategory = async (req, res) => {
 export const getMenuItems = async (req, res) => {
   try {
     const { hotelId } = req.user;
-    const { categoryId, isAvailable } = req.query;
+    const { categoryId, isAvailable, outletId } = req.query;
 
     const whereClause = { hotelId };
     if (categoryId) whereClause.categoryId = categoryId;
+    if (outletId) whereClause.outletId = outletId;
 
     if (isAvailable !== undefined) {
            whereClause.isAvailable = isAvailable === 'true' || isAvailable === true;
@@ -267,7 +276,8 @@ export const createMenuItem = async (req, res) => {
       vegetarian, 
       calories,
       sortOrder ,
-      isAvailable
+      isAvailable,
+      outletId
     } = req.body;
 
     console.log(req.body)
@@ -299,6 +309,7 @@ export const createMenuItem = async (req, res) => {
       basePrice: parseFloat(basePrice),
       categoryId: categoryId,
       hotelId,
+      outletId: outletId || null,
       prepTime: prepTime ? parseInt(prepTime) : 15,
       spiceLevel: spiceLevel || "Mild",
       code: code || null,

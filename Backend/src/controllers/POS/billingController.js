@@ -3,6 +3,58 @@ const { PrismaClient, PaymentMode } = pkg;
 
 const prisma = new PrismaClient();
 
+// In-memory timers to auto-release tables after maintenance window
+const maintenanceTimers = new Map(); // key: tableId, value: NodeJS.Timeout
+
+const scheduleTableMaintenance = async (tableId, hotelId, durationMs = 10 * 60 * 1000) => {
+  try {
+    if (!tableId) return;
+
+    // Set table to MAINTENANCE now
+    await prisma.table.update({
+      where: { id: tableId },
+      data: { status: 'MAINTENANCE' },
+    });
+
+    // Clear any existing timer for this table
+    const existing = maintenanceTimers.get(tableId);
+    if (existing) {
+      clearTimeout(existing);
+      maintenanceTimers.delete(tableId);
+    }
+
+    // Schedule release to AVAILABLE after duration, if no active orders
+    const timer = setTimeout(async () => {
+      try {
+        const activeOrders = await prisma.order.count({
+          where: {
+            tableId: tableId,
+            hotelId: hotelId,
+            status: {
+              in: ['PENDING', 'CONFIRMED', 'PREPARING']
+            }
+          }
+        });
+
+        if (activeOrders === 0) {
+          await prisma.table.update({
+            where: { id: tableId },
+            data: { status: 'AVAILABLE' },
+          });
+        }
+      } catch (innerErr) {
+        console.error('Error auto-releasing table from maintenance:', innerErr);
+      } finally {
+        maintenanceTimers.delete(tableId);
+      }
+    }, durationMs);
+
+    maintenanceTimers.set(tableId, timer);
+  } catch (err) {
+    console.error('Error scheduling table maintenance:', err);
+  }
+};
+
 // ===================== BILL CONTROLLERS =====================
 
 // Normalize incoming payment mode strings to Prisma PaymentMode enum values
@@ -421,6 +473,11 @@ export const createPayment = async (req, res) => {
       }
     });
 
+    // If payment is successful and the order has an associated table, put it into MAINTENANCE for 10 minutes
+    if ((status === 'SUCCESS' || status === true) && payment.order?.table?.id) {
+      await scheduleTableMaintenance(payment.order.table.id, hotelId);
+    }
+
     res.status(201).json({
       success: true,
       data: payment,
@@ -442,6 +499,12 @@ export const updatePayment = async (req, res) => {
     const { id } = req.params;
     const { mode, amount, status } = req.body;
 
+    // Fetch existing payment to detect status change
+    const existing = await prisma.payment.findFirst({
+      where: { id, order: { hotelId } },
+      include: { order: { include: { table: true } } }
+    });
+
     const payment = await prisma.payment.update({
       where: { 
         id,
@@ -451,8 +514,14 @@ export const updatePayment = async (req, res) => {
         mode: mode || undefined,
         amount: amount !== undefined ? parseFloat(amount) : undefined,
         status: status || undefined
-      }
+      },
+      include: { order: { include: { table: true } } }
     });
+
+    // If status transitioned to SUCCESS and there's a table, schedule maintenance
+    if (status && status === 'SUCCESS' && existing?.status !== 'SUCCESS' && payment.order?.table?.id) {
+      await scheduleTableMaintenance(payment.order.table.id, hotelId);
+    }
 
     res.json({
       success: true,
