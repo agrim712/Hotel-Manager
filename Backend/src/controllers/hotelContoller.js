@@ -18,142 +18,168 @@ const ALL_MODULES = [
     { value: "Cab/Travel Management", label: "Cab/Travel Management" },
     { label: "All in One", value: "All in One"}
   ];
-  export const createHotel = async (req, res) => {
-    try {
-      const userId = req.user?.id;
-      if (!userId) {
-        return res.status(401).json({ error: "Unauthorized: User not found." });
+export const createHotel = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized: User not found." });
+    }
+
+    // 1️⃣ Parse JSON fields if passed as strings
+    const parsedBody = { ...req.body };
+    const fieldsToParse = [
+      "bankAccounts",
+      "rooms",
+      "products",
+      "amenities",
+      "paymentModes",
+      "otas",
+    ];
+    fieldsToParse.forEach((field) => {
+      if (req.body[field] && typeof req.body[field] === "string") {
+        try {
+          parsedBody[field] = JSON.parse(req.body[field]);
+        } catch (e) {
+          console.error(`Failed to parse JSON for ${field}:`, e);
+          parsedBody[field] = [];
+        }
       }
-  
-      // 1. Parse JSON fields if needed
-      const parsedBody = { ...req.body };
-      const fieldsToParse = ['bankAccounts', 'rooms', 'products', 'amenities', 'paymentModes', 'otas'];
-      fieldsToParse.forEach(field => {
-        if (req.body[field] && typeof req.body[field] === 'string') {
-          try {
-            parsedBody[field] = JSON.parse(req.body[field]);
-          } catch (e) {
-            console.error(`Failed to parse JSON for field ${field}:`, e);
-            parsedBody[field] = [];
-          }
-        }
+    });
+
+    // 2️⃣ Transaction: Hotel, Rooms, RoomUnits, Files, Bank Accounts
+    const hotelResult = await prisma.$transaction(async (tx) => {
+      // A. Create Hotel
+      const hotel = await tx.hotel.create({
+        data: {
+          name: parsedBody.name,
+          brandAffiliation: parsedBody.brandAffiliation,
+          category: parsedBody.category,
+          registeredAddress: parsedBody.registeredAddress,
+          operationalAddress: parsedBody.operationalAddress,
+          country: parsedBody.country,
+          state: parsedBody.state,
+          city: parsedBody.city,
+          pinCode: parsedBody.pinCode,
+          timeZone: parsedBody.timeZone,
+          preferredLanguage: parsedBody.preferredLanguage,
+          contactPerson: parsedBody.contactPerson,
+          phoneCode: parsedBody.phoneCode,
+          phoneNumber: parsedBody.phoneNumber,
+          whatsappNumber: parsedBody.whatsappNumber,
+          email: parsedBody.email,
+          website: parsedBody.website,
+          googleMapsLink: parsedBody.googleMapsLink,
+          totalRooms: parsedBody.totalRooms ? Number(parsedBody.totalRooms) : 0,
+          propertyType: parsedBody.propertyType,
+          currency: parsedBody.currency,
+          panNumber: parsedBody.panNumber,
+          gstin: parsedBody.gstin,
+          tourismRegistration: parsedBody.tourismRegistration,
+          companyRegistration: parsedBody.companyRegistration,
+          checkInTime: parsedBody.checkInTime,
+          checkOutTime: parsedBody.checkOutTime,
+          earlyCheckInPolicy: parsedBody.earlyCheckInPolicy,
+          lateCheckOutPolicy: parsedBody.lateCheckOutPolicy,
+          cancellationPolicy: parsedBody.cancellationPolicy,
+          noShowPolicy: parsedBody.noShowPolicy,
+          invoiceFormat: parsedBody.invoiceFormat,
+          paymentModes: parsedBody.paymentModes,
+          otas: parsedBody.otas,
+          channelManager: parsedBody.channelManager,
+          bookingEngine: parsedBody.bookingEngine,
+          products: Array.isArray(parsedBody.products)
+            ? parsedBody.products
+            : [],
+          isPaymentDone: false,
+        },
       });
-  
-      const hotelResult = await prisma.$transaction(async (tx) => {
-        // Step A: Create main hotel
-        const hotel = await tx.hotel.create({
-          data: {
-            name: parsedBody.name,
-            brandAffiliation: parsedBody.brandAffiliation,
-            category: parsedBody.category,
-            registeredAddress: parsedBody.registeredAddress,
-            operationalAddress: parsedBody.operationalAddress,
-            country: parsedBody.country,
-            state: parsedBody.state,
-            city: parsedBody.city,
-            pinCode: parsedBody.pinCode,
-            timeZone: parsedBody.timeZone,
-            preferredLanguage: parsedBody.preferredLanguage,
-            contactPerson: parsedBody.contactPerson,
-            phoneCode: parsedBody.phoneCode,
-            phoneNumber: parsedBody.phoneNumber,
-            whatsappNumber: parsedBody.whatsappNumber,
-            email: parsedBody.email,
-            website: parsedBody.website,
-            googleMapsLink: parsedBody.googleMapsLink,
-            totalRooms: parsedBody.totalRooms ? Number(parsedBody.totalRooms) : 0,
-            propertyType: parsedBody.propertyType,
-            currency: parsedBody.currency,
-            panNumber: parsedBody.panNumber,
-            gstin: parsedBody.gstin,
-            tourismRegistration: parsedBody.tourismRegistration,
-            companyRegistration: parsedBody.companyRegistration,
-            checkInTime: parsedBody.checkInTime,
-            checkOutTime: parsedBody.checkOutTime,
-            earlyCheckInPolicy: parsedBody.earlyCheckInPolicy,
-            lateCheckOutPolicy: parsedBody.lateCheckOutPolicy,
-            cancellationPolicy: parsedBody.cancellationPolicy,
-            noShowPolicy: parsedBody.noShowPolicy,
-            invoiceFormat: parsedBody.invoiceFormat,
-            paymentModes: parsedBody.paymentModes,
-            otas: parsedBody.otas,
-            channelManager: parsedBody.channelManager,
-            bookingEngine: parsedBody.bookingEngine,
-            products: Array.isArray(parsedBody.products) ? parsedBody.products : [],
-            isPaymentDone: false,
-          },
-        });
-  
-        // Step B: Rooms
-        const createdRooms = [];
-        if (Array.isArray(parsedBody.rooms)) {
-          for (const room of parsedBody.rooms) {
-            const createdRoom = await tx.room.create({
-              data: {
-                name: room.name,
-                numOfRooms: Number(room.numOfRooms) || 0,
-                maxGuests: Number(room.maxGuests) || 0,
-                rateType: room.rateType || "standard",
-                rate: Number(room.rate) || 0,
-                extraAdultRate: room.extraAdultRate ? Number(room.extraAdultRate) : null,
-                roomNumbers: Array.isArray(room.roomNumbers) ? room.roomNumbers : [],
-                amenities: room.amenities || [],
-                smoking: room.smoking || "non-smoking",
-                extraBedPolicy: room.extraBedPolicy || null,
-                childPolicy: room.childPolicy || null,
-                petPolicy: room.petPolicy || "Not Allowed",
-                hotelId: hotel.id,
-              },
-            });
-            createdRooms.push(createdRoom);
-          }
-        }
-  
-        // Step C: Files
-        if (req.files) {
-          const allFiles = Object.values(req.files).flat();
-          const filePaths = {};
-  
-          for (const file of allFiles) {
-            const timestamp = Date.now();
-            const uniqueFilename = `${timestamp}-${file.originalname}`;
-            const fileUrl = `${req.protocol}://${req.get("host")}/api/hotel/files/${uniqueFilename}`;
-  
-            if (req.files) {
-              for (const [field, files] of Object.entries(req.files)) {
-                const labelPrefix = fileNameMap[field] || field;
-            
-                for (const file of files) {
-                  const timestamp = Date.now();
-                  const extension = file.originalname.split(".").pop();
-                  const uniqueFilename = `${labelPrefix}-${timestamp}.${extension}`;
-                  const fileUrl = `${req.protocol}://${req.get("host")}/api/hotel/files/${uniqueFilename}`;
-                  const fileType = file.mimetype || extension;
-                
-                  await tx.propertyFiles.create({
-                    data: {
-                      altText: file.originalname, // keep original for reference
-                      hotelId: hotel.id,
-                      fileType,
-                      url:fileUrl
-                    },
-                  });
-                }
+
+      // B. Create Rooms & RoomUnits
+      if (Array.isArray(parsedBody.rooms)) {
+        for (const room of parsedBody.rooms) {
+          const numOfRooms = Number(room.numOfRooms) || 0;
+          const roomNumbersArray = Array.isArray(room.roomNumbers) ? room.roomNumbers : [];
+
+          // Room creation
+          const createdRoom = await tx.room.create({
+            data: {
+              name: room.name,
+              numOfRooms: numOfRooms,
+              maxGuests: Number(room.maxGuests) || 0,
+              rateType: room.rateType || "standard",
+              rate: Number(room.rate) || 0,
+              extraAdultRate: room.extraAdultRate ? Number(room.extraAdultRate) : null,
+              roomNumbers: roomNumbersArray,
+              amenities: room.amenities || [],
+              smoking: room.smoking || "non-smoking",
+              extraBedPolicy: room.extraBedPolicy || null,
+              childPolicy: room.childPolicy || null,
+              petPolicy: room.petPolicy || "Not Allowed",
+              hotelId: hotel.id,
+            },
+          });
+
+          // RoomUnit creation
+          if (roomNumbersArray.length) {
+            const today = new Date();
+            const currentYear = today.getMonth() >= 3 ? today.getFullYear() : today.getFullYear() - 1;
+            const startDate = new Date(currentYear, 3, 1); // Apr 1
+            const endDate = new Date(currentYear + 1, 2, 31); // Mar 31
+            const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+            const dailyStatus = Array(totalDays).fill("AVAILABLE");
+
+            for (const rn of roomNumbersArray) {
+              try {
+                const [floor, number] = rn.split("-");
+                await tx.roomUnit.create({
+                  data: {
+                    roomNumber: number,
+                    floor: floor || null,
+                    roomId: createdRoom.id,
+                    hotelId: hotel.id,
+                    dailyStatus,
+                    cleaningStatus: "CLEANED",
+                    startDate,
+                  },
+                });
+                console.log(`✅ RoomUnit created: ${rn} for room ${room.name}`);
+              } catch (err) {
+                console.error(`❌ Failed to create RoomUnit for ${rn} in room ${room.name}:`, err.message);
               }
             }
-          }
-  
-          // Update hotel doc paths if needed
-          if (Object.keys(filePaths).length > 0) {
-            await tx.hotel.update({
-              where: { id: hotel.id },
-              data: filePaths,
-            });
+          } else {
+            console.warn(`⚠️ Room ${room.name} has no roomNumbers defined. Skipping RoomUnit creation.`);
           }
         }
-  
-        // Step D: Bank Accounts
-        if (Array.isArray(parsedBody.bankAccounts)) {
+      }
+
+      // C. Property Files
+      if (req.files) {
+        for (const [field, files] of Object.entries(req.files)) {
+          for (const file of files) {
+            try {
+              const timestamp = Date.now();
+              const extension = file.originalname.split(".").pop();
+              const uniqueFilename = `${field}-${timestamp}.${extension}`;
+              const fileUrl = `${req.protocol}://${req.get("host")}/api/hotel/files/${uniqueFilename}`;
+              await tx.propertyFiles.create({
+                data: {
+                  altText: file.originalname,
+                  hotelId: hotel.id,
+                  fileType: file.mimetype || extension,
+                  url: fileUrl,
+                },
+              });
+            } catch (err) {
+              console.error(`❌ Failed to save file ${file.originalname}:`, err.message);
+            }
+          }
+        }
+      }
+
+      // D. Bank Accounts
+      if (Array.isArray(parsedBody.bankAccounts) && parsedBody.bankAccounts.length) {
+        try {
           await tx.bankAccount.createMany({
             data: parsedBody.bankAccounts.map((acc) => ({
               accountHolderName: acc.accountHolderName,
@@ -166,37 +192,41 @@ const ALL_MODULES = [
               hotelId: hotel.id,
             })),
           });
+        } catch (err) {
+          console.error("❌ Failed to create bank accounts:", err.message);
         }
-  
-        return tx.hotel.findUnique({
-          where: { id: hotel.id },
-          include: { propertyFiles: true, rooms: true, bankAccounts: true },
-        });
+      }
+
+      return tx.hotel.findUnique({
+        where: { id: hotel.id },
+        include: { rooms: true, propertyFiles: true, bankAccounts: true },
       });
-  
-      // Link hotel to user
-      await prisma.user.update({
-        where: { id: userId },
-        data: { hotelId: hotelResult.id },
-      });
-  
-      const newToken = jwt.sign(
-        { userId, role: req.user.role, hotelId: hotelResult.id },
-        process.env.JWT_SECRET,
-        { expiresIn: "7d" }
-      );
-  
-      return res.status(201).json({
-        message: "Hotel onboarded successfully!",
-        hotel: hotelResult,
-        token: newToken,
-      });
-    } catch (err) {
-      console.error("Hotel onboard error:", err);
-      return res.status(500).json({ error: "Server error", details: err.message });
-    }
-  };
-  
+    });
+
+    // 3️⃣ Link Hotel to User
+    await prisma.user.update({
+      where: { id: userId },
+      data: { hotelId: hotelResult.id },
+    });
+
+    // 4️⃣ Generate JWT with hotelId
+    const newToken = jwt.sign(
+      { userId, role: req.user.role, hotelId: hotelResult.id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    return res.status(201).json({
+      message: "Hotel onboarded successfully!",
+      hotel: hotelResult,
+      token: newToken,
+    });
+  } catch (err) {
+    console.error("❌ Hotel onboard error:", err);
+    return res.status(500).json({ error: "Server error", details: err.message });
+  }
+};
+
   // controllers/hotelController.js
 export const getPropertyFilesByHotelId = async (req, res) => {
   try {
@@ -329,15 +359,24 @@ export const getPropertyFilesByHotelId = async (req, res) => {
           await tx.room.deleteMany({ where: { hotelId: hotel.id } });
   
           for (const room of parsedBody.rooms) {
+            // Validate numOfRooms and roomNumbers consistency in update
+            const numOfRooms = Number(room.numOfRooms) || 0;
+            const roomNumbersArray = Array.isArray(room.roomNumbers) ? room.roomNumbers : [];
+            
+            // Ensure consistency between numOfRooms and roomNumbers array length
+            if (numOfRooms > 0 && roomNumbersArray.length !== numOfRooms) {
+              console.warn(`Warning: numOfRooms (${numOfRooms}) doesn't match roomNumbers count (${roomNumbersArray.length}) for room ${room.name}`);
+            }
+            
             const createdRoom = await tx.room.create({
               data: {
                 name: room.name,
-                numOfRooms: Number(room.numOfRooms) || 0,
+                numOfRooms: numOfRooms,
                 maxGuests: Number(room.maxGuests) || 0,
                 rateType: room.rateType || "standard",
                 rate: Number(room.rate) || 0,
                 extraAdultRate: room.extraAdultRate ? Number(room.extraAdultRate) : null,
-                roomNumbers: Array.isArray(room.roomNumbers) ? room.roomNumbers : [],
+                roomNumbers: roomNumbersArray,
                 amenities: room.amenities || [],
                 smoking: room.smoking || "non-smoking",
                 extraBedPolicy: room.extraBedPolicy || null,

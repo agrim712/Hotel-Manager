@@ -1,5 +1,6 @@
 import express from "express";
 import multer from "multer";
+import path from "path"
 
 import pkg from '@prisma/client';
 const { PrismaClient, Prisma } = pkg;
@@ -21,6 +22,7 @@ import { getSavedForm, saveForm } from "../controllers/formController.js";
 import { getHotelKPI } from "../controllers/Revenue/revenueController.js";
 import { getAllRooms } from "../controllers/hotelContoller.js";
 import { HOTEL_ROLES } from "../utils/roles.js";
+import { testRoomUnitCreation, createMissingRoomUnits } from "../controllers/testRoomUnits.js";
 import { getRoomDetails , updateHotel, getPropertyFilesByHotelId, deletePropertyFile} from "../controllers/hotelContoller.js";
 import { createSchedule, getSchedules } from "../controllers/tickets/preventiveController.js"
 import { createTicket, getTickets, getTicketById, assignTechnician, updateTicketStatus } from "../controllers/tickets/ticketsController.js"
@@ -28,7 +30,9 @@ import { getTechnicians, createTechnician } from '../controllers/tickets/technic
 import { 
   generateRateTemplate, 
   uploadRates, 
-  getRates 
+  getRates,
+  getRatesByRoomAndDate,
+  debugRates
 } from "../controllers/rateController.js";
 import { staffUser } from "../controllers/staffUser.js";
 import { emitRoomCleaningStatusUpdated } from "../utils/websocketEvents.js";
@@ -363,7 +367,9 @@ const rateUpload = multer({
 router.get('/rates/template', auth, authorizeRoles('HOTELADMIN'), generateRateTemplate);
 router.post('/rates/upload', 
   auth,authorizeRoles('HOTELADMIN'),rateUpload.single('file'),uploadRates);
-router.get('/rates/:rateType', auth, authorizeRoles('HOTELADMIN'), getRates);
+router.get('/rates/debug', auth, authorizeRoles('HOTELADMIN'), debugRates);
+router.get('/rates', auth, authorizeRoles('HOTELADMIN'), getRates);
+router.get('/rates/room', auth, authorizeRoles('HOTELADMIN', 'Front Office'), getRatesByRoomAndDate);
 router.post('/rates/test-upload', auth, authorizeRoles('HOTELADMIN'), (req, res) => {
 
   
@@ -454,6 +460,9 @@ router.get("/kpi/:hotelId", getHotelKPI);
 router.get("/rooms", auth, authorizeRoles('HOTELADMIN'),getRoomDetails);
 router.get('/rooms-units',  auth, authorizeRoles('HOTELADMIN'),getAllRooms);
 
+/* ======================== Test Routes for RoomUnit Debugging ======================== */
+router.get('/test-room-units/:hotelId', testRoomUnitCreation);
+router.post('/fix-room-units/:hotelId', createMissingRoomUnits);
 
 /* ======================== Report Routes ======================== */
 router.get('/reports/day-wise-report', auth, authorizeRoles('HOTELADMIN'), async (req, res) => {

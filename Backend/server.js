@@ -15,7 +15,9 @@ import Superadmin from "./src/routes/Superadmin.js";
 import cron from 'node-cron';
 import expenseRoutes from './src/routes/expenseRoutes.js';
 import pricing from "./src/routes/pricing.js"
+import revenueRoutes from './src/routes/revenueRoutes.js';
 import { updateRoomUnitStatus } from './src/controllers/Reservation/changeStatus.js';
+import './src/cron/yearlyAvailability.js';
 
 import path from 'path';
 
@@ -60,6 +62,7 @@ app.use('/api/expense', expenseRoutes);
 app.use('/api/pos', posRoutes);
 app.use("/api/superadmin", Superadmin);
 app.use("/api", pricing);
+app.use('/api/revenue', revenueRoutes);
 // Health Check
 app.get('/api/health', (req, res) => {
   res.json({ 

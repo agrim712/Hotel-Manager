@@ -205,9 +205,25 @@ const formatDataForBackend = (formData, uploadedFiles) => {
             extraBedPolicy: room.extraBedPolicy || null,
             childPolicy: room.childPolicy || null,
             petPolicy: room.petPolicy || null,
-            roomNumbers: typeof room.roomNumbers === 'string'
-                ? room.roomNumbers.split(',').map(n => n.trim()).filter(Boolean)
-                : [],
+            roomNumbers: (() => {
+                if (typeof room.roomNumbers === 'string') {
+                    const trimmed = room.roomNumbers.trim();
+                    
+                    // Parse floor-number format: "1-101, 1-102, 2-201" or line-separated
+                    const roomNumbers = trimmed
+                        .split(/[,\n]/)
+                        .map(num => num.trim())
+                        .filter(Boolean)
+                        .filter(roomNum => roomNum.match(/^(\d+)-(\d+)$/)); // Only valid floor-number format
+                    
+                    console.log(`Parsed room numbers from floor-number format:`, roomNumbers);
+                    return roomNumbers;
+                } else if (Array.isArray(room.roomNumbers)) {
+                    return room.roomNumbers;
+                } else {
+                    return [];
+                }
+            })(),
         })) || [],
         bankAccounts: formData.bankAccounts,
         products: formData.products?.map(p => ({
@@ -696,6 +712,9 @@ const validateFormData = (data, uploadedFiles, pendingFiles) => {
             if (!room.name || room.name.trim() === '') {
                 errors.push(`Room Type ${index + 1}: Room Name is required`);
             }
+            if (!room.numOfRooms || Number(room.numOfRooms) <= 0) {
+                errors.push(`Room Type ${index + 1}: Number of rooms is required and must be greater than 0`);
+            }
             if (!room.maxGuests || room.maxGuests <= 0) {
                 errors.push(`Room Type ${index + 1}: Max Guests is required`);
             }
@@ -709,7 +728,88 @@ const validateFormData = (data, uploadedFiles, pendingFiles) => {
             (typeof room.roomNumbers === 'string' && room.roomNumbers.trim() === '') ||
             (Array.isArray(room.roomNumbers) && room.roomNumbers.length === 0)) {
             errors.push(`Room Type ${index + 1}: Room Numbers are required`);
+        } else {
+            // Process room numbers and validate floor-number format
+            let roomNumbersArray = [];
+            
+            if (typeof room.roomNumbers === 'string') {
+                const trimmed = room.roomNumbers.trim();
+                
+                // Parse floor-number format: "1-101, 1-102, 2-201" or line-separated
+                const parsedNumbers = trimmed
+                    .split(/[,\n]/)
+                    .map(num => num.trim())
+                    .filter(Boolean);
+                
+                // Validate each room number format (floor-number)
+                const invalidFormats = [];
+                const validRoomNumbers = [];
+                
+                parsedNumbers.forEach((roomNum, idx) => {
+                    const floorRoomMatch = roomNum.match(/^(\d+)-(\d+)$/);
+                    
+                    if (!floorRoomMatch) {
+                        invalidFormats.push(`"${roomNum}" (position ${idx + 1})`);
+                    } else {
+                        validRoomNumbers.push(roomNum);
+                    }
+                });
+                
+                if (invalidFormats.length > 0) {
+                    errors.push(`Room Type ${index + 1}: Invalid format for: ${invalidFormats.join(', ')}. Use floor-number format (e.g., 1-101, 2-201)`);
+                }
+                
+                roomNumbersArray = validRoomNumbers;
+            } else if (Array.isArray(room.roomNumbers)) {
+                roomNumbersArray = room.roomNumbers.filter(Boolean);
+            }
+            
+            // Check for duplicates (only if format is valid)
+            if (roomNumbersArray.length > 0) {
+                const uniqueRoomNumbers = new Set(roomNumbersArray);
+                if (uniqueRoomNumbers.size !== roomNumbersArray.length) {
+                    errors.push(`Room Type ${index + 1}: Duplicate room numbers are not allowed`);
+                }
+                
+                // Validate count consistency with numOfRooms
+                const numOfRooms = Number(room.numOfRooms) || 0;
+                
+                if (numOfRooms > 0 && roomNumbersArray.length !== numOfRooms) {
+                    errors.push(`Room Type ${index + 1}: You entered ${roomNumbersArray.length} room numbers, but "Number of Rooms" is ${numOfRooms}`);
+                }
+            }
         }
+        });
+        
+        // Cross-room validation: Check for duplicate room numbers across all room types
+        const allRoomNumbers = [];
+        data.rooms.forEach((room, roomIndex) => {
+            let roomNumbersArray = [];
+            
+            if (typeof room.roomNumbers === 'string') {
+                const trimmed = room.roomNumbers.trim();
+                // Parse floor-number format
+                roomNumbersArray = trimmed
+                    .split(/[,\n]/)
+                    .map(num => num.trim())
+                    .filter(Boolean)
+                    .filter(roomNum => roomNum.match(/^(\d+)-(\d+)$/));
+            } else if (Array.isArray(room.roomNumbers)) {
+                roomNumbersArray = room.roomNumbers.filter(Boolean);
+            }
+            
+            roomNumbersArray.forEach(roomNum => {
+                const existingRoom = allRoomNumbers.find(r => r.number === roomNum);
+                if (existingRoom) {
+                    errors.push(`Room number ${roomNum} is used in both "${room.name}" (Room Type ${roomIndex + 1}) and "${existingRoom.roomTypeName}" (Room Type ${existingRoom.roomTypeIndex + 1})`);
+                } else {
+                    allRoomNumbers.push({
+                        number: roomNum,
+                        roomTypeName: room.name || `Room Type ${roomIndex + 1}`,
+                        roomTypeIndex: roomIndex
+                    });
+                }
+            });
         });
     } else {
         errors.push("At least one room type is required");
@@ -790,11 +890,35 @@ const getSectionValidationStatus = (data, uploadedFiles, pendingFiles, sectionId
                     if (!room.maxGuests || room.maxGuests <= 0) errors.push(`Room ${index + 1} Max Guests`);
                     if (!room.rateType) errors.push(`Room ${index + 1} Rate Type`);
                     if (!room.rate || room.rate <= 0) errors.push(`Room ${index + 1} Base Rate`);
+                    if (!room.numOfRooms || Number(room.numOfRooms) <= 0) {
+                        errors.push(`Room ${index + 1} Number of rooms`);
+                    }
+                    
+                    // Room numbers validation
                     if (!room.roomNumbers || 
-                (typeof room.roomNumbers === 'string' && room.roomNumbers.trim() === '') ||
-                (Array.isArray(room.roomNumbers) && room.roomNumbers.length === 0)) {
-                errors.push(`Room ${index + 1} Room Numbers`);
-            }
+                        (typeof room.roomNumbers === 'string' && room.roomNumbers.trim() === '') ||
+                        (Array.isArray(room.roomNumbers) && room.roomNumbers.length === 0)) {
+                        errors.push(`Room ${index + 1} Room Numbers`);
+                    } else {
+                        // Validate count consistency for floor-number format
+                        let roomNumbersArray = [];
+                        
+                        if (typeof room.roomNumbers === 'string') {
+                            const trimmed = room.roomNumbers.trim();
+                            roomNumbersArray = trimmed
+                                .split(/[,\n]/)
+                                .map(num => num.trim())
+                                .filter(Boolean)
+                                .filter(roomNum => roomNum.match(/^(\d+)-(\d+)$/));
+                        } else if (Array.isArray(room.roomNumbers)) {
+                            roomNumbersArray = room.roomNumbers.filter(Boolean);
+                        }
+                        
+                        const numOfRooms = Number(room.numOfRooms) || 0;
+                        if (numOfRooms > 0 && roomNumbersArray.length !== numOfRooms) {
+                            errors.push(`Room ${index + 1} Count mismatch (${roomNumbersArray.length} entered vs ${numOfRooms} specified)`);
+                        }
+                    }
                 });
             } else {
                 errors.push("At least one room type");
