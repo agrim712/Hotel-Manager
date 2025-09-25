@@ -992,19 +992,6 @@ model ThirdPartyOrder {
   @@unique([platform, externalOrderId])
 }
 
-model TaxConfiguration {
-  id              String   @id @default(cuid())
-  platform        String // SWIGGY, ZOMATO, UBER_EATS, etc.
-  externalOrderId String
-  status          String   @default("PENDING")
-  orderData       Json // Full order data from platform
-  hotelId         String
-  hotel           Hotel    @relation(fields: [hotelId], references: [id])
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  @@unique([platform, externalOrderId])
-}
 
 model TaxConfiguration {
   id          String   @id @default(cuid())
